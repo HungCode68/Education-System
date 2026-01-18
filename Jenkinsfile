@@ -51,6 +51,8 @@ pipeline {
                     --name lms-backend \
                     --network lms-network \
                     -p 8090:8081 \
+                    -e DB_URL=jdbc:mysql://mysql-lms:3306/lms_db?createDatabaseIfNotExist=true \
+                    -e DB_PASSWORD=123456789 \
                     ${DOCKER_IMAGE}:${DOCKER_TAG}
                 """
             }
