@@ -45,7 +45,7 @@ pipeline {
                 sh "docker stop lms-backend || true"
                 sh "docker rm lms-backend || true"
 
-                // Chạy container mới (Kết nối với mạng lms-network để thấy MySQL)
+
                 sh """
                     docker run -d \
                     --name lms-backend \
