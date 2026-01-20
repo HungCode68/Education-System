@@ -44,6 +44,7 @@ pipeline {
                 // Xóa container cũ đi (nếu có) để chạy cái mới
                 sh "docker stop lms-backend || true"
                 sh "docker rm lms-backend || true"
+                sh "mkdir -p /var/log/lms-backend"
 
                 // Chạy container mới (Kết nối với mạng lms-network để thấy MySQL)
                 sh """
@@ -53,6 +54,7 @@ pipeline {
                     -p 8090:8081 \
                     -e DB_URL=jdbc:mysql://mysql-lms:3306/lms_db?createDatabaseIfNotExist=true \
                     -e DB_PASSWORD=123456789 \
+                    -v /var/log/lms-backend:/logs \
                     ${DOCKER_IMAGE}:${DOCKER_TAG}
                 """
             }
