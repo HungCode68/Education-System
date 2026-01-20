@@ -44,7 +44,6 @@ pipeline {
                 // Xóa container cũ đi (nếu có) để chạy cái mới
                 sh "docker stop lms-backend || true"
                 sh "docker rm lms-backend || true"
-                sh "mkdir -p /var/log/lms-backend"
 
                 // Chạy container mới (Kết nối với mạng lms-network để thấy MySQL)
                 sh """
