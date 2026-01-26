@@ -1,5 +1,5 @@
 package com.lms.education.entity;
 
-// Entity --
+// Entity
 public class user {
 }
