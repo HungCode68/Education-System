@@ -33,4 +33,5 @@ build/
 .vscode/
 
 ### Application Configuration ###
+# Hide Config
 src/main/resources/application.properties
