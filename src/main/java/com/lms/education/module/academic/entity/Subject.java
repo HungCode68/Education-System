@@ -19,7 +19,7 @@ public class Subject {
     @Column(length = 36)
     private String id;
 
-    // Map NVARCHAR(100) để lưu tên môn tiếng Việt (Ví dụ: "Toán cao cấp")
+    // Lưu tên môn tiếng Việt (Ví dụ: "Toán cao cấp")
     @Column(nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String name;
 
