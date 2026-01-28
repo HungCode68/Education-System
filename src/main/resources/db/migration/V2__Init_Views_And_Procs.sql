@@ -316,7 +316,7 @@ FROM students st
          LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND st.id = asub.student_id
 
 GROUP BY
-    st.id, st.student_code, st.full_name, u.email, u.avatar,
+    st.id, st.student_code, st.full_name, u.email,
     oc.id, oc.name,
     s.id, s.name,
     sy.name, ta.semester_id;
