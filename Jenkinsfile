@@ -53,7 +53,7 @@ pipeline {
                     -p 8090:8081 \
                     -e DB_URL=jdbc:mysql://mysql-lms:3306/lms_db?createDatabaseIfNotExist=true \
                     -e DB_PASSWORD=123456789 \
-                    -e MINIO_ENDPOINT=http://103.57.220.127:9000 \
+                    -e MINIO_ENDPOINT=http://minio-server:9000 \
                     -e MINIO_ACCESS_KEY=admin \
                     -e MINIO_SECRET_KEY=password123 \
                     -e MINIO_BUCKET_NAME=lms-storage \
