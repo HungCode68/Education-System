@@ -21,7 +21,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().authenticated() // Yêu cầu phải đăng nhập với mọi request
                 )
-                .httpBasic(Customizer.withDefaults()); // Bật chế độ Basic Auth
+                .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
