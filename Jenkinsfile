@@ -12,6 +12,10 @@ pipeline {
         // Tên image docker bạn muốn đặt
         DOCKER_IMAGE = 'hungcode68/lms-backend'
         DOCKER_TAG = "${BUILD_NUMBER}" // Tag theo số lần build (v1, v2...)
+
+        SECRET_DB_PASS = credentials('lms-db-password')
+        SECRET_MINIO_KEY = credentials('lms-minio-secret')
+        SECRET_APP_PASS = credentials('lms-app-password')
     }
 
     stages {
@@ -52,11 +56,14 @@ pipeline {
                     --network lms-network \
                     -p 8090:8081 \
                     -e DB_URL=jdbc:mysql://mysql-lms:3306/lms_db?createDatabaseIfNotExist=true \
-                    -e DB_PASSWORD=123456789 \
+                    -e DB_USERNAME='root' \
+                    -e DB_PASSWORD='${SECRET_DB_PASS}' \
                     -e MINIO_ENDPOINT=http://minio-server:9000 \
-                    -e MINIO_ACCESS_KEY=admin \
-                    -e MINIO_SECRET_KEY=password123 \
+                    -e MINIO_ACCESS_KEY='admin' \
+                    -e MINIO_SECRET_KEY='${SECRET_MINIO_KEY}' \
                     -e MINIO_BUCKET_NAME=lms-storage \
+                    -e APP_SECURITY_USER='admin' \
+                    -e APP_SECURITY_PASSWORD='${SECRET_APP_PASS}' \
                     -v /var/log/lms-backend:/logs \
                     ${DOCKER_IMAGE}:${DOCKER_TAG}
                 """
