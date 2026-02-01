@@ -53,10 +53,17 @@ public class AuthController {
         UserPrincipal userDetails = (UserPrincipal) authentication.getPrincipal();
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
+                .filter(auth -> auth.startsWith("ROLE_"))
+                .map(auth -> auth.replace("ROLE_", ""))
                 .collect(Collectors.toList());
 
-        // Generate Refresh Token
-        String refreshToken = UUID.randomUUID().toString();
+        List<String> permissions = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(auth -> !auth.startsWith("ROLE_"))
+                .collect(Collectors.toList());
+
+        // Generate Refresh Token (JWT format)
+        String refreshToken = jwtUtils.generateRefreshToken(userDetails.getUsername());
         
         // Save Refresh Token to DB
         User user = userRepository.findById(userDetails.getId())
@@ -72,7 +79,8 @@ public class AuthController {
                 refreshToken,
                 userDetails.getId(),
                 userDetails.getEmail(),
-                roles));
+                roles,
+                permissions));
     }
 
     @PostMapping("/refresh-token")
@@ -89,6 +97,9 @@ public class AuthController {
                     }
                     
                     String token = jwtUtils.generateTokenFromUsername(user.getEmail());
+                    // Rotate Refresh Token? (Optional, but good for security. Keeping same for now or generating new?)
+                    // If we want to rotate, we should generate new one here too.
+                    // For now, keep existing behavior (return new access token, keep old refresh token)
                     return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken));
                 })
                 .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
