@@ -19,13 +19,20 @@ public class Permission {
     private String code;
 
     public enum PermissionScope {
-        company,
-        workspace,
-        project
+        SYSTEM,
+        ACADEMIC_YEAR,
+        GRADE,
+        CLASS,
+        USER,
+        SUBJECT,
+        ASSIGNMENT,
+        MATERIAL,
+        GRADEBOOK,
+        REPORT
     }
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('company', 'workspace', 'project')")
+    @Column(nullable = false)
     private PermissionScope scope;
 
     @Column(length = 120, columnDefinition = "NVARCHAR(120)")

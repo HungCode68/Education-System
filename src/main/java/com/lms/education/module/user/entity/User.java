@@ -48,6 +48,12 @@ public class User {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
+    @Column(name = "refresh_token", columnDefinition = "TEXT")
+    private String refreshToken;
+
+    @Column(name = "refresh_token_expiry")
+    private LocalDateTime refreshTokenExpiry;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
