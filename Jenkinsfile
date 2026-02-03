@@ -70,6 +70,35 @@ pipeline {
                     -v /var/log/lms-backend:/logs \
                     ${DOCKER_IMAGE}:${DOCKER_TAG}
                 """
+
+                echo '⏳ Đang chờ 30 giây để hệ thống ổn định và kết nối...'
+                sleep 30 // Chờ 30s là thời gian an toàn để Java khởi động xong
+
+                def targetContainers = ['lms-backend', 'mysql-lms', 'minio-server', 'frontend-app']
+                def failedContainers = []
+
+                targetContainers.each { containerName ->
+                    // Kiểm tra trạng thái Running của từng container
+                    // Lệnh "|| echo 'false'" để tránh lỗi pipeline nếu container không tồn tại
+                    def isRunning = sh(script: "docker inspect -f '{{.State.Running}}' ${containerName} || echo 'false'", returnStdout: true).trim()
+
+                    if (isRunning == 'true') {
+                        echo "✅ [OK] Container '${containerName}' đang chạy ổn định."
+                    } else {
+                        echo "❌ [ERROR] Container '${containerName}' ĐÃ BỊ SẬP hoặc KHÔNG TỒN TẠI!"
+                        failedContainers.add(containerName)
+
+                        // In ngay 50 dòng log cuối của container bị lỗi để debug
+                        echo "🔍 Log lỗi của ${containerName}:"
+                        sh "docker logs --tail 50 ${containerName} || true"
+                    }
+                }
+
+                if (!failedContainers.isEmpty()) {
+                    error("🚨 Deployment Thất bại! Các container sau gặp sự cố: ${failedContainers}")
+                } else {
+                    echo "🎉 CHÚC MỪNG! Toàn bộ hệ thống (Backend, DB, MinIO, Frontend) đang hoạt động tốt!"
+                }
             }
         }
     }
