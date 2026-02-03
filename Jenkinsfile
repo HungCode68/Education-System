@@ -45,6 +45,7 @@ pipeline {
 
         stage('4. Deploy') {
             steps {
+                script {
                 echo 'Đang chạy Container...'
                 // Xóa container cũ đi (nếu có) để chạy cái mới
                 sh "docker stop lms-backend || true"
@@ -99,6 +100,7 @@ pipeline {
                 } else {
                     echo "🎉 CHÚC MỪNG! Toàn bộ hệ thống (Backend, DB, MinIO, Frontend) đang hoạt động tốt!"
                 }
+              }
             }
         }
     }
