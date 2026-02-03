@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/school-years")
@@ -71,21 +72,21 @@ public class SchoolYearController {
     //  Xóa Đơn (Theo ID trên URL)
     // API: DELETE /api/v1/school-years/{id}
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOne(@PathVariable String id) {
+    public ResponseEntity<Object> deleteOne(@PathVariable String id) {
         log.info("REST request to delete SchoolYear ID: {}", id);
         // Bọc ID đơn lẻ vào List để gọi hàm chung của Service
         schoolYearService.delete(List.of(id));
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of("message", "Xóa năm học thành công!"));
     }
 
     //  Xóa Nhiều (Bulk Delete)
     // API: DELETE /api/v1/school-years
     // Body: ["id1", "id2", "id3"]
     @DeleteMapping
-    public ResponseEntity<Void> deleteMany(@RequestBody List<String> ids) {
+    public ResponseEntity<Object> deleteMany(@RequestBody List<String> ids) {
         log.info("REST request to bulk delete SchoolYears: {}", ids);
         schoolYearService.delete(ids);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of("message", "Xóa năm học thành công!"));
     }
 
     //  API Kết thúc năm học

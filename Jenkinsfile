@@ -14,6 +14,7 @@ pipeline {
         DOCKER_TAG = "${BUILD_NUMBER}" // Tag theo số lần build (v1, v2...)
 
         SECRET_DB_PASS = credentials('lms-db-password')
+        SECRET_JWT_KEY = credentials('lms-jwt-secret')
         SECRET_MINIO_KEY = credentials('lms-minio-secret')
         SECRET_APP_PASS = credentials('lms-app-password')
     }
@@ -58,6 +59,8 @@ pipeline {
                     -e DB_URL=jdbc:mysql://mysql-lms:3306/lms_db?createDatabaseIfNotExist=true \
                     -e DB_USERNAME='root' \
                     -e DB_PASSWORD='${SECRET_DB_PASS}' \
+                    -e JWT_SECRET='${SECRET_JWT_KEY}' \
+                    -e JWT_EXPIRATION=86400000 \
                     -e MINIO_ENDPOINT=http://minio-server:9000 \
                     -e MINIO_ACCESS_KEY='admin' \
                     -e MINIO_SECRET_KEY='${SECRET_MINIO_KEY}' \
