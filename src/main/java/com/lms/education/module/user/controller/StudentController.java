@@ -21,7 +21,7 @@ public class StudentController {
     private final StudentService studentService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('CLASS_IMPORT_STUDENT')")
+    @PreAuthorize("hasAuthority('USER_CREATE')") // đổi lại thành quyền user_create của admin hệ thống (có toàn quyền)
     public ResponseEntity<StudentDto> create(@Valid @RequestBody StudentDto dto) {
         return new ResponseEntity<>(studentService.create(dto), HttpStatus.CREATED);
     }
