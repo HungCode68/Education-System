@@ -3,6 +3,7 @@ package com.lms.education.module.academic.repository;
 import com.lms.education.module.academic.entity.ClassStudent;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -76,5 +77,15 @@ public interface ClassStudentRepository extends JpaRepository<ClassStudent, Stri
     List<ClassStudent> findByPhysicalClassIdAndStatusOption(
             String classId,
             ClassStudent.StudentStatus status
+    );
+
+    // MỚI BỔ SUNG: DÙNG CHO SYNC ONLINE CLASS
+    @Query("SELECT cs FROM ClassStudent cs " +
+            "JOIN FETCH cs.student s " +
+            "WHERE cs.physicalClass.id = :physicalClassId " +
+            "AND cs.status = :status")
+    List<ClassStudent> findAllByPhysicalClassIdAndStatus(
+            @Param("physicalClassId") String physicalClassId,
+            @Param("status") ClassStudent.StudentStatus status
     );
 }
