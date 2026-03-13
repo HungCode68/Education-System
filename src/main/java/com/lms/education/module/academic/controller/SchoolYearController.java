@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class SchoolYearController {
 
     //  Lấy danh sách tất cả
     @GetMapping
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_VIEW')")
     public ResponseEntity<PageResponse<SchoolYearDto>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) SchoolYearStatus status,
@@ -35,6 +37,7 @@ public class SchoolYearController {
 
     //  Lấy chi tiết theo ID
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_VIEW')")
     public ResponseEntity<SchoolYearDto> getById(@PathVariable String id) {
         log.info("REST request to get SchoolYear ID: {}", id);
         return ResponseEntity.ok(schoolYearService.getById(id));
@@ -42,6 +45,7 @@ public class SchoolYearController {
 
     //  Lấy năm học hiện tại (Theo ngày hôm nay)
     @GetMapping("/current")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_VIEW')")
     public ResponseEntity<SchoolYearDto> getCurrent() {
         log.info("REST request to get Current SchoolYear");
         SchoolYearDto current = schoolYearService.getCurrentSchoolYear();
@@ -53,6 +57,7 @@ public class SchoolYearController {
 
     //  Tạo mới
     @PostMapping
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_CREATE')")
     public ResponseEntity<SchoolYearDto> create(@Valid @RequestBody SchoolYearDto dto) {
         log.info("REST request to create SchoolYear: {}", dto.getName());
         // Trả về 201 Created thay vì 200 OK
@@ -61,6 +66,7 @@ public class SchoolYearController {
 
     //  Cập nhật
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
     public ResponseEntity<SchoolYearDto> update(
             @PathVariable String id,
             @Valid @RequestBody SchoolYearDto dto
@@ -72,6 +78,7 @@ public class SchoolYearController {
     //  Xóa Đơn (Theo ID trên URL)
     // API: DELETE /api/v1/school-years/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
     public ResponseEntity<Object> deleteOne(@PathVariable String id) {
         log.info("REST request to delete SchoolYear ID: {}", id);
         // Bọc ID đơn lẻ vào List để gọi hàm chung của Service
@@ -83,6 +90,7 @@ public class SchoolYearController {
     // API: DELETE /api/v1/school-years
     // Body: ["id1", "id2", "id3"]
     @DeleteMapping
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
     public ResponseEntity<Object> deleteMany(@RequestBody List<String> ids) {
         log.info("REST request to bulk delete SchoolYears: {}", ids);
         schoolYearService.delete(ids);
@@ -92,6 +100,7 @@ public class SchoolYearController {
     //  API Kết thúc năm học
     // API: PUT /api/v1/school-years/{id}/archive
     @PutMapping("/{id}/archive")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
     public ResponseEntity<Void> archive(@PathVariable String id) {
         log.info("REST request to archive SchoolYear ID: {}", id);
 

@@ -7,6 +7,7 @@ import com.lms.education.utils.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class TeachingAssignmentHistoryController {
     // Tìm kiếm và Phân trang (Cho màn hình "Nhật ký hệ thống" của Admin)
     // GET /api/v1/teaching-assignment-history?keyword=Toan&page=1&size=20
     @GetMapping
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<PageResponse<TeachingAssignmentHistoryDto>> search(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
@@ -34,6 +36,7 @@ public class TeachingAssignmentHistoryController {
     // GET /api/v1/teaching-assignment-history/assignment/{assignmentId}
     // Dùng khi: Admin bấm vào nút "Lịch sử" trên dòng phân công môn Toán 10A1
     @GetMapping("/assignment/{assignmentId}")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<List<TeachingAssignmentHistoryDto>> getByAssignment(@PathVariable String assignmentId) {
         return ResponseEntity.ok(historyService.getByAssignment(assignmentId));
     }
@@ -42,6 +45,7 @@ public class TeachingAssignmentHistoryController {
     // GET /api/v1/teaching-assignment-history/class/{classId}
     // Dùng khi: Vào chi tiết lớp 10A1 -> Tab "Lịch sử thay đổi GV"
     @GetMapping("/class/{classId}")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<List<TeachingAssignmentHistoryDto>> getByClass(@PathVariable String classId) {
         return ResponseEntity.ok(historyService.getByClass(classId));
     }
@@ -50,6 +54,7 @@ public class TeachingAssignmentHistoryController {
     // GET /api/v1/teaching-assignment-history/teacher/{teacherId}
     // Dùng khi: Vào hồ sơ Cô Lan -> Xem "Lịch sử công tác"
     @GetMapping("/teacher/{teacherId}")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<List<TeachingAssignmentHistoryDto>> getByTeacher(@PathVariable String teacherId) {
         return ResponseEntity.ok(historyService.getByTeacher(teacherId));
     }

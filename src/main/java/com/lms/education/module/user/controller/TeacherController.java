@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/teachers")
 @RequiredArgsConstructor
@@ -51,5 +53,18 @@ public class TeacherController {
             @PageableDefault(sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         return ResponseEntity.ok(teacherService.getAll(pageable));
+    }
+
+
+    // POST /api/teachers/{id}/create-account
+    @PostMapping("/{id}/create-account")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
+    public ResponseEntity<Map<String, String>> createAccountForTeacher(
+            @PathVariable String id,
+            @RequestBody(required = false) Map<String, String> request
+    ) {
+        String email = (request != null) ? request.get("email") : null;
+        teacherService.createAccountForExistingTeacher(id, email);
+        return ResponseEntity.ok(Map.of("message", "Đã cấp tài khoản thành công"));
     }
 }

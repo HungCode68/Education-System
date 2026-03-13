@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class TeachingSubstitutionController {
     // Tạo yêu cầu dạy thay mới
     // POST /api/v1/teaching-substitutions
     @PostMapping
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<TeachingSubstitutionDto> create(@Valid @RequestBody TeachingSubstitutionDto dto) {
         log.info("Request tạo dạy thay cho phân công ID: {}", dto.getAssignmentId());
         return ResponseEntity.status(HttpStatus.CREATED).body(substitutionService.create(dto));
@@ -33,6 +35,7 @@ public class TeachingSubstitutionController {
     // Tìm kiếm và Phân trang (Cho Admin/Quản lý)
     // GET /api/v1/teaching-substitutions?schoolYearId=...&semesterId=...&keyword=...
     @GetMapping
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN') or hasAuthority('ONLINE_CLASS_VIEW')")
     public ResponseEntity<PageResponse<TeachingSubstitutionDto>> search(
             @RequestParam(required = false) String schoolYearId,
             @RequestParam(required = false) String semesterId,
@@ -46,6 +49,7 @@ public class TeachingSubstitutionController {
     // Xem lịch dạy thay của một giáo viên cụ thể
     // GET /api/v1/teaching-substitutions/by-teacher/{teacherId}
     @GetMapping("/by-teacher/{teacherId}")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN') or hasAuthority('ONLINE_CLASS_VIEW')")
     public ResponseEntity<List<TeachingSubstitutionDto>> getBySubTeacher(@PathVariable String teacherId) {
         return ResponseEntity.ok(substitutionService.getBySubTeacher(teacherId));
     }
@@ -53,6 +57,7 @@ public class TeachingSubstitutionController {
     // Cập nhật trạng thái (Duyệt / Từ chối / Hủy)
     // PATCH /api/v1/teaching-substitutions/{id}/status?status=rejected
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<Map<String, String>> updateStatus(
             @PathVariable String id,
             @RequestParam String status // pending, approved, cancelled, rejected
@@ -69,6 +74,7 @@ public class TeachingSubstitutionController {
     // Hủy yêu cầu dạy thay (Shortcut cho việc set status = cancelled)
     // DELETE /api/v1/teaching-substitutions/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<Map<String, String>> cancel(@PathVariable String id) {
         substitutionService.cancel(id);
         return ResponseEntity.ok(Map.of("message", "Đã hủy yêu cầu dạy thay thành công"));

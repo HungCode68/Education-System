@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class SemesterController {
     // Tạo mới Học kỳ
     // POST /api/v1/semesters
     @PostMapping
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_CREATE')")
     public ResponseEntity<SemesterDto> create(@Valid @RequestBody SemesterDto dto) {
         log.info("Request tạo học kỳ mới: {}", dto.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(semesterService.create(dto));
@@ -32,6 +34,7 @@ public class SemesterController {
     // Cập nhật thông tin Học kỳ
     // PUT /api/v1/semesters/{id}
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
     public ResponseEntity<SemesterDto> update(@PathVariable String id, @Valid @RequestBody SemesterDto dto) {
         log.info("Request cập nhật học kỳ ID: {}", id);
         return ResponseEntity.ok(semesterService.update(id, dto));
@@ -40,6 +43,7 @@ public class SemesterController {
     // Xóa Học kỳ
     // DELETE /api/v1/semesters/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
     public ResponseEntity<Map<String, String>> delete(@PathVariable String id) {
         semesterService.delete(id);
         return ResponseEntity.ok(Map.of("message", "Đã xóa học kỳ thành công"));
@@ -48,6 +52,7 @@ public class SemesterController {
     // Xem chi tiết
     // GET /api/v1/semesters/{id}
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_VIEW')")
     public ResponseEntity<SemesterDto> getById(@PathVariable String id) {
         return ResponseEntity.ok(semesterService.getById(id));
     }
@@ -55,6 +60,7 @@ public class SemesterController {
     // Lấy danh sách Học kỳ theo Năm học (Sắp xếp theo thứ tự ưu tiên)
     // GET /api/v1/semesters/by-year/{schoolYearId}
     @GetMapping("/by-year/{schoolYearId}")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_VIEW')")
     public ResponseEntity<List<SemesterDto>> getBySchoolYear(@PathVariable String schoolYearId) {
         return ResponseEntity.ok(semesterService.getAllBySchoolYear(schoolYearId));
     }
@@ -62,6 +68,7 @@ public class SemesterController {
     //  Cập nhật trạng thái nhanh (Kích hoạt / Kết thúc)
     // PATCH /api/v1/semesters/{id}/status?status=active
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
     public ResponseEntity<Map<String, String>> updateStatus(
             @PathVariable String id,
             @RequestParam String status // active, upcoming, finished

@@ -16,6 +16,8 @@ import java.time.LocalDate;
 public class TeacherDto {
     private String id;
 
+    private String userId;
+
     @NotBlank(message = "Teacher code is required")
     private String teacherCode;
 

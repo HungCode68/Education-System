@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +25,7 @@ public class GradeSubjectController {
     // Tìm kiếm và Phân trang
     // GET /api/v1/grade-subjects?gradeId=...&keyword=toan&page=1&size=10
     @GetMapping
+    @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
     public ResponseEntity<PageResponse<GradeSubjectDto>> search(
             @RequestParam(required = false) String gradeId,
             @RequestParam(required = false) String keyword,
@@ -38,6 +40,7 @@ public class GradeSubjectController {
     // GET /api/v1/grade-subjects/by-grade/{gradeId}?onlyLmsEnabled=true
     // - Dùng cho User (onlyLmsEnabled=true): Học sinh xem danh sách môn học của mình.
     @GetMapping("/by-grade/{gradeId}")
+    @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
     public ResponseEntity<List<GradeSubjectDto>> getByGradeId(
             @PathVariable String gradeId,
             @RequestParam(defaultValue = "false") boolean onlyLmsEnabled
@@ -49,6 +52,7 @@ public class GradeSubjectController {
     // Lấy chi tiết theo ID
     // GET /api/v1/grade-subjects/{id}
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
     public ResponseEntity<GradeSubjectDto> getById(@PathVariable String id) {
         return ResponseEntity.ok(gradeSubjectService.getById(id));
     }
@@ -56,6 +60,7 @@ public class GradeSubjectController {
     // Tạo mới (Gán môn vào khối)
     // POST /api/v1/grade-subjects
     @PostMapping
+    @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
     public ResponseEntity<GradeSubjectDto> create(@Valid @RequestBody GradeSubjectDto dto) {
         log.info("REST request to create GradeSubject mapping: Grade {} - Subject {}", dto.getGradeId(), dto.getSubjectId());
         return ResponseEntity.status(HttpStatus.CREATED).body(gradeSubjectService.create(dto));
@@ -64,6 +69,7 @@ public class GradeSubjectController {
     // Cập nhật (Sửa cấu hình: thứ tự, bật/tắt LMS)
     // PUT /api/v1/grade-subjects/{id}
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
     public ResponseEntity<GradeSubjectDto> update(
             @PathVariable String id,
             @Valid @RequestBody GradeSubjectDto dto
@@ -75,6 +81,7 @@ public class GradeSubjectController {
     // Xóa (Gỡ môn khỏi khối)
     // DELETE /api/v1/grade-subjects/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
     public ResponseEntity<Object> delete(@PathVariable String id) {
         log.info("REST request to delete GradeSubject ID: {}", id);
         gradeSubjectService.delete(id);

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class GradeController {
     // Tìm kiếm và Phân trang (Admin quản lý)
     // GET /api/v1/grades?keyword=khoi&isActive=true&page=1&size=10
     @GetMapping
+    @PreAuthorize("hasAuthority('GRADE_MANAGE')")
     public ResponseEntity<PageResponse<GradeDto>> search(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Boolean isActive,
@@ -37,6 +39,7 @@ public class GradeController {
     // Lấy danh sách Khối đang hoạt động (Dùng cho Dropdown)
     // GET /api/v1/grades/active-list
     @GetMapping("/active-list")
+    @PreAuthorize("hasAuthority('GRADE_MANAGE')")
     public ResponseEntity<List<GradeDto>> getAllActive() {
         log.info("REST request to get all Active Grades for dropdown");
         return ResponseEntity.ok(gradeService.getAllActive());
@@ -45,6 +48,7 @@ public class GradeController {
     // Lấy chi tiết theo ID
     // GET /api/v1/grades/{id}
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('GRADE_MANAGE')")
     public ResponseEntity<GradeDto> getById(@PathVariable String id) {
         log.info("REST request to get Grade ID: {}", id);
         return ResponseEntity.ok(gradeService.getById(id));
@@ -53,6 +57,7 @@ public class GradeController {
     // Tạo mới
     // POST /api/v1/grades
     @PostMapping
+    @PreAuthorize("hasAuthority('GRADE_MANAGE')")
     public ResponseEntity<GradeDto> create(@Valid @RequestBody GradeDto dto) {
         log.info("REST request to create Grade: {}", dto.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(gradeService.create(dto));
@@ -61,6 +66,7 @@ public class GradeController {
     // Cập nhật
     // PUT /api/v1/grades/{id}
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('GRADE_MANAGE')")
     public ResponseEntity<GradeDto> update(
             @PathVariable String id,
             @Valid @RequestBody GradeDto dto
@@ -72,6 +78,7 @@ public class GradeController {
     // Xóa
     // DELETE /api/v1/grades/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('GRADE_MANAGE')")
     public ResponseEntity<Object> delete(@PathVariable String id) {
         log.info("REST request to delete Grade ID: {}", id);
         gradeService.delete(id);

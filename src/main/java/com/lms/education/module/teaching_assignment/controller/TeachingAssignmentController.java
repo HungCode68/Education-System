@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class TeachingAssignmentController {
     // Phân công giáo viên (Tạo mới hoặc Thay thế)
     // POST /api/v1/teaching-assignments
     @PostMapping
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<TeachingAssignmentDto> assignTeacher(@Valid @RequestBody TeachingAssignmentDto dto) {
         log.info("Request phân công giáo viên: {}", dto.getTeacherId());
         return ResponseEntity.ok(assignmentService.assignTeacher(dto));
@@ -30,6 +32,7 @@ public class TeachingAssignmentController {
     // Hủy phân công (Xóa)
     // DELETE /api/v1/teaching-assignments/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<Map<String, String>> unassignTeacher(@PathVariable String id) {
         assignmentService.unassignTeacher(id);
         return ResponseEntity.ok(Map.of("message", "Đã hủy phân công thành công"));
@@ -38,6 +41,7 @@ public class TeachingAssignmentController {
     // Xem danh sách phân công của một Lớp (Theo học kỳ)
     // GET /api/v1/teaching-assignments/by-class/{classId}?semesterId=...
     @GetMapping("/by-class/{classId}")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN') or hasAuthority('ONLINE_CLASS_VIEW')")
     public ResponseEntity<List<TeachingAssignmentDto>> getAssignmentsByClass(
             @PathVariable String classId,
             @RequestParam String semesterId
@@ -49,6 +53,7 @@ public class TeachingAssignmentController {
     // GET /api/v1/teaching-assignments/workload?teacherId=...&semesterId=...
     // Giúp Frontend hiển thị: "Thầy A đang dạy 5 lớp"
     @GetMapping("/workload")
+    @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<Map<String, Long>> checkWorkload(
             @RequestParam String teacherId,
             @RequestParam String semesterId

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class SubjectController {
     // Tìm kiếm và Phân trang
     // GET /api/v1/subjects?keyword=toan&isActive=true&page=1&size=10
     @GetMapping
+    @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
     public ResponseEntity<PageResponse<SubjectDto>> search(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Boolean isActive,
@@ -37,6 +39,7 @@ public class SubjectController {
     // Lấy danh sách môn đang hoạt động (Dùng cho Dropdown chọn môn học)
     // GET /api/v1/subjects/active-list
     @GetMapping("/active-list")
+    @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
     public ResponseEntity<List<SubjectDto>> getAllActive() {
         log.info("REST request to get all Active Subjects for dropdown");
         return ResponseEntity.ok(subjectService.getAllActive());
@@ -45,6 +48,7 @@ public class SubjectController {
     // Lấy chi tiết theo ID
     // GET /api/v1/subjects/{id}
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
     public ResponseEntity<SubjectDto> getById(@PathVariable String id) {
         log.info("REST request to get Subject ID: {}", id);
         return ResponseEntity.ok(subjectService.getById(id));
@@ -53,6 +57,7 @@ public class SubjectController {
     // Tạo mới
     // POST /api/v1/subjects
     @PostMapping
+    @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
     public ResponseEntity<SubjectDto> create(@Valid @RequestBody SubjectDto dto) {
         log.info("REST request to create Subject: {}", dto.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(subjectService.create(dto));
@@ -61,6 +66,7 @@ public class SubjectController {
     // Cập nhật
     // PUT /api/v1/subjects/{id}
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
     public ResponseEntity<SubjectDto> update(
             @PathVariable String id,
             @Valid @RequestBody SubjectDto dto
@@ -72,6 +78,7 @@ public class SubjectController {
     // Xóa
     // DELETE /api/v1/subjects/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
     public ResponseEntity<Object> delete(@PathVariable String id) {
         log.info("REST request to delete Subject ID: {}", id);
         subjectService.delete(id);

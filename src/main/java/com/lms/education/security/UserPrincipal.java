@@ -21,20 +21,12 @@ public class UserPrincipal implements UserDetails {
     private String password;
     private Collection<? extends GrantedAuthority> authorities;
 
-    public static UserPrincipal build(User user) {
-        // Map Role and Permissions to Authorities
-        List<GrantedAuthority> authorities = user.getRole().getPermissions().stream()
-                .map(permission -> new SimpleGrantedAuthority(permission.getCode()))
-                .collect(Collectors.toList());
-        
-        // Add Role as an authority as well (conventionally prefixed with ROLE_)
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode()));
-
+    public static UserPrincipal build(User user, List<GrantedAuthority> authorities) {
         return new UserPrincipal(
                 user.getId(),
                 user.getEmail(),
                 user.getPassword(),
-                authorities
+                authorities // Nhận danh sách quyền được truyền trực tiếp từ CustomUserDetailsService
         );
     }
 

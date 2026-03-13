@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -27,6 +28,7 @@ public class ClassTransferController {
     // Thực hiện chuyển lớp (API Quan trọng)
     // POST /api/v1/class-transfers
     @PostMapping
+    @PreAuthorize("hasAuthority('CLASS_TRANSFER_STUDENT')")
     public ResponseEntity<Map<String, String>> transferStudent(@Valid @RequestBody TransferStudentRequest request) {
         log.info("REST request to transfer student: {} to class: {}", request.getStudentId(), request.getToClassId());
         classTransferService.transferStudent(request);
@@ -36,6 +38,7 @@ public class ClassTransferController {
     // Xem lịch sử chuyển lớp của riêng 1 học sinh
     // GET /api/v1/class-transfers/student/{studentId}
     @GetMapping("/student/{studentId}")
+    @PreAuthorize("hasAuthority('CLASS_TRANSFER_STUDENT')")
     public ResponseEntity<List<ClassTransferHistoryDto>> getHistoryByStudent(@PathVariable String studentId) {
         return ResponseEntity.ok(classTransferService.getHistoryByStudent(studentId));
     }
@@ -43,6 +46,7 @@ public class ClassTransferController {
     // Tìm kiếm & Thống kê lịch sử (Dùng cho trang Quản lý chuyển lớp)
     // GET /api/v1/class-transfers?keyword=...&classId=...&startDate=2025-01-01&endDate=2025-12-31
     @GetMapping
+    @PreAuthorize("hasAuthority('CLASS_TRANSFER_STUDENT')")
     public ResponseEntity<PageResponse<ClassTransferHistoryDto>> searchHistory(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String classId,

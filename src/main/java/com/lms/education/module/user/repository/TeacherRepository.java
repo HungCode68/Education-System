@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface TeacherRepository extends JpaRepository<Teacher, String> {
     Optional<Teacher> findByTeacherCode(String teacherCode);
     boolean existsByTeacherCode(String teacherCode);
+    Optional<Teacher> findByUser_Email(String email);
 }

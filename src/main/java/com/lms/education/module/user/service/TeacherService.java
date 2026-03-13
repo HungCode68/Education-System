@@ -10,4 +10,5 @@ public interface TeacherService {
     void delete(String id);
     TeacherDto getById(String id);
     Page<TeacherDto> getAll(Pageable pageable);
+    void createAccountForExistingTeacher(String teacherId, String email);
 }

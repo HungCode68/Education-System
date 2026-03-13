@@ -10,4 +10,5 @@ public interface StudentService {
     void delete(String id);
     StudentDto getById(String id);
     Page<StudentDto> getAll(Pageable pageable);
+    void createAccountForExistingStudent(String studentId, String email);
 }

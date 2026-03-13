@@ -42,4 +42,9 @@ public class StudentDto {
     private Integer admissionYear;
 
     private Student.Status status;
+
+    private String email;
+
+    // Để hiển thị ra cho Frontend biết user ID liên kết là gì
+    private String userId;
 }

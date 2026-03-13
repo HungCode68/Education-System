@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/students")
 @RequiredArgsConstructor
@@ -51,5 +53,18 @@ public class StudentController {
             @PageableDefault(sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         return ResponseEntity.ok(studentService.getAll(pageable));
+    }
+
+    // POST /api/students/{id}/create-account
+    // Body: { "email": "hs002@school.edu.vn" }
+    @PostMapping("/{id}/create-account")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
+    public ResponseEntity<Map<String, String>> createAccountForStudent(
+            @PathVariable String id,
+            @RequestBody(required = false) Map<String, String> request
+    ) {
+        String email = (request != null) ? request.get("email") : null;
+        studentService.createAccountForExistingStudent(id, email);
+        return ResponseEntity.ok(Map.of("message", "Đã cấp tài khoản thành công"));
     }
 }

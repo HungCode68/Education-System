@@ -4,14 +4,19 @@ import com.lms.education.exception.DuplicateResourceException;
 import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.user.dto.TeacherDto;
 import com.lms.education.module.user.entity.Department;
+import com.lms.education.module.user.entity.Role;
 import com.lms.education.module.user.entity.Teacher;
+import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.DepartmentRepository;
+import com.lms.education.module.user.repository.RoleRepository;
 import com.lms.education.module.user.repository.TeacherRepository;
+import com.lms.education.module.user.repository.UserRepository;
 import com.lms.education.module.user.service.TeacherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,18 +27,39 @@ public class TeacherServiceImpl implements TeacherService {
 
     private final TeacherRepository teacherRepository;
     private final DepartmentRepository departmentRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
 
     @Override
     @Transactional
     public TeacherDto create(TeacherDto dto) {
         if (teacherRepository.existsByTeacherCode(dto.getTeacherCode())) {
-            throw new DuplicateResourceException("Teacher code already exists: " + dto.getTeacherCode());
+            throw new DuplicateResourceException("Mã giáo viên đã tồn tại");
         }
 
         Department department = null;
         if (dto.getDepartmentId() != null) {
             department = departmentRepository.findById(dto.getDepartmentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + dto.getDepartmentId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Phòng ban không tồn tại"));
+        }
+
+        // LOGIC MỚI: User có thể là null
+        User savedUser = null;
+
+        // Chỉ tạo tài khoản nếu có nhập Email liên hệ
+        if (dto.getEmailContact() != null && !dto.getEmailContact().isBlank()) {
+            if (userRepository.existsByEmail(dto.getEmailContact())) {
+                throw new DuplicateResourceException("Email đã tồn tại: " + dto.getEmailContact());
+            }
+            User newUser = new User();
+            newUser.setEmail(dto.getEmailContact());
+            newUser.setPassword(passwordEncoder.encode(dto.getTeacherCode()));
+            Role teacherRole = roleRepository.findByCode("SUBJECT_TEACHER")
+                    .orElseThrow(() -> new RuntimeException("Lỗi: DB thiếu role SUBJECT_TEACHER"));
+
+            newUser.setRole(teacherRole);
+            savedUser = userRepository.save(newUser);
         }
 
         Teacher teacher = Teacher.builder()
@@ -50,10 +76,10 @@ public class TeacherServiceImpl implements TeacherService {
                 .major(dto.getMajor())
                 .startDate(dto.getStartDate())
                 .status(dto.getStatus() != null ? dto.getStatus() : Teacher.Status.working)
+                .user(savedUser)
                 .build();
 
-        Teacher saved = teacherRepository.save(teacher);
-        return mapToDto(saved);
+        return mapToDto(teacherRepository.save(teacher));
     }
 
     @Override
@@ -115,6 +141,50 @@ public class TeacherServiceImpl implements TeacherService {
         return teacherRepository.findAll(pageable).map(this::mapToDto);
     }
 
+
+    @Override
+    @Transactional
+    public void createAccountForExistingTeacher(String teacherId, String email) {
+        // Tìm hồ sơ giáo viên
+        Teacher teacher = teacherRepository.findById(teacherId)
+                .orElseThrow(() -> new ResourceNotFoundException("Giáo viên không tồn tại"));
+
+        if (teacher.getUser() != null) {
+            throw new DuplicateResourceException("Giáo viên này đã có tài khoản rồi!");
+        }
+
+        // XỬ LÝ EMAIL
+        String finalEmail;
+
+        if (email != null && !email.isBlank()) {
+            finalEmail = email;
+        } else {
+            // TỰ ĐỘNG: Lấy Mã GV viết thường + đuôi email
+            // Ví dụ: TeacherCode="GV001" -> Email="gv001@school.edu.vn"
+            finalEmail = teacher.getTeacherCode().toLowerCase() + "@school.edu.vn";
+        }
+
+        if (userRepository.existsByEmail(finalEmail)) {
+            throw new DuplicateResourceException("Email " + finalEmail + " đã tồn tại!");
+        }
+
+        // Tạo User
+        User newUser = new User();
+        newUser.setEmail(finalEmail);
+        newUser.setPassword(passwordEncoder.encode(teacher.getTeacherCode()));
+
+        com.lms.education.module.user.entity.Role teacherRole = roleRepository.findByCode("SUBJECT_TEACHER")
+                .orElseThrow(() -> new RuntimeException("Lỗi: DB thiếu role SUBJECT_TEACHER"));
+        newUser.setRole(teacherRole);
+
+        User savedUser = userRepository.save(newUser);
+
+        // Update Teacher
+        teacher.setUser(savedUser);
+        teacher.setEmailContact(finalEmail);
+        teacherRepository.save(teacher);
+    }
+
     private TeacherDto mapToDto(Teacher teacher) {
         return TeacherDto.builder()
                 .id(teacher.getId())
@@ -131,6 +201,7 @@ public class TeacherServiceImpl implements TeacherService {
                 .major(teacher.getMajor())
                 .startDate(teacher.getStartDate())
                 .status(teacher.getStatus())
+                .userId(teacher.getUser() != null ? teacher.getUser().getId() : null)
                 .build();
     }
 }

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class PhysicalClassController {
     // Tìm kiếm và Phân trang
     // GET /api/v1/physical-classes?schoolYearId=...&gradeId=...&keyword=10A1&page=1
     @GetMapping
+    @PreAuthorize("hasAuthority('CLASS_VIEW')")
     public ResponseEntity<PageResponse<PhysicalClassDto>> search(
             @RequestParam(required = false) String schoolYearId,
             @RequestParam(required = false) String gradeId,
@@ -38,6 +40,7 @@ public class PhysicalClassController {
     // Lấy danh sách lớp cho Dropdown (Khi chọn Năm học -> Chọn Khối -> Load list lớp)
     // GET /api/v1/physical-classes/dropdown?schoolYearId=...&gradeId=...
     @GetMapping("/dropdown")
+    @PreAuthorize("hasAuthority('CLASS_VIEW')")
     public ResponseEntity<List<PhysicalClassDto>> getDropdown(
             @RequestParam String schoolYearId,
             @RequestParam String gradeId
@@ -48,6 +51,7 @@ public class PhysicalClassController {
     // Lấy chi tiết lớp
     // GET /api/v1/physical-classes/{id}
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('CLASS_VIEW')")
     public ResponseEntity<PhysicalClassDto> getById(@PathVariable String id) {
         return ResponseEntity.ok(physicalClassService.getById(id));
     }
@@ -55,6 +59,7 @@ public class PhysicalClassController {
     // Tạo lớp mới
     // POST /api/v1/physical-classes
     @PostMapping
+    @PreAuthorize("hasAuthority('CLASS_CREATE')")
     public ResponseEntity<PhysicalClassDto> create(@Valid @RequestBody PhysicalClassDto dto) {
         log.info("REST request to create Class: {}", dto.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(physicalClassService.create(dto));
@@ -63,6 +68,7 @@ public class PhysicalClassController {
     // Cập nhật thông tin lớp (Đổi tên, đổi phòng, đổi GVCN)
     // PUT /api/v1/physical-classes/{id}
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
     public ResponseEntity<PhysicalClassDto> update(
             @PathVariable String id,
             @Valid @RequestBody PhysicalClassDto dto
@@ -74,6 +80,7 @@ public class PhysicalClassController {
     // Xóa lớp (Chỉ xóa khi chưa có dữ liệu ràng buộc)
     // DELETE /api/v1/physical-classes/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
     public ResponseEntity<Object> delete(@PathVariable String id) {
         log.info("REST request to delete Class ID: {}", id);
         physicalClassService.delete(id);
