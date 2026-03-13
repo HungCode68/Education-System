@@ -75,6 +75,8 @@ pipeline {
                 echo '⏳ Đang chờ 30 giây để hệ thống ổn định và kết nối...'
                 sleep 30 // Chờ 30s là thời gian an toàn để Java khởi động xong
 
+                sh "docker system prune -a -f"
+
                 def targetContainers = ['lms-backend', 'mysql-lms', 'minio-server', 'frontend-app']
                 def failedContainers = []
 
