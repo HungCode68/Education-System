@@ -19,7 +19,7 @@ public class UserController {
 
     // PATCH /api/v1/users/{userId}/role
     @PatchMapping("/{userId}/role")
-    @PreAuthorize("hasAuthority('USER_UPDATE')") // Chỉ Admin có quyền này mới được đổi role
+    @PreAuthorize("hasAuthority('USER_UPDATE')") // Chỉ Admin mới được đổi role
     public ResponseEntity<Map<String, String>> changeRole(
             @PathVariable String userId,
             @Valid @RequestBody ChangeRoleRequest request
