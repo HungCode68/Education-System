@@ -161,7 +161,7 @@ public class StudentServiceImpl implements StudentService {
         // Tạo User
         User newUser = new User();
         newUser.setEmail(finalEmail);
-        // Mật khẩu mặc định vẫn để là Mã SV (viết hoa đúng như hồ sơ) cho dễ nhớ
+        // Mật khẩu mặc định vẫn để là Mã SV (viết hoa đúng như hồ sơ)
         newUser.setPassword(passwordEncoder.encode(student.getStudentCode()));
 
         // Lấy Role
