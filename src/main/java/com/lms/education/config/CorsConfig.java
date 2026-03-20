@@ -15,7 +15,8 @@ public class CorsConfig implements WebMvcConfigurer {
                         "http://localhost:3000",  // Thường dùng cho React (CRA)
                         "http://localhost:5173",  // Thường dùng cho Vite (Vue/React)
                         "http://localhost:4200",  // Thường dùng cho Angular
-                        "http://103.57.220.127:3000"
+                        "http://103.57.220.127:3000",
+                        "http://localhost:57533"
                 )
                 // Nếu đang test nội bộ mà muốn lười (mở cho TẤT CẢ), bạn có thể dùng dòng dưới thay cho allowedOrigins
                 // .allowedOriginPatterns("*")
