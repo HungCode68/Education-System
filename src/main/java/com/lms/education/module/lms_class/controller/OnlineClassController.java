@@ -29,9 +29,7 @@ public class OnlineClassController {
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
 
-    // =================================================================
     // DÀNH CHO GIÁO VIÊN
-    // =================================================================
 
     // Lấy danh sách lớp tôi dạy (My Classes)
     // GET /api/v1/online-classes/teacher/my-classes
@@ -48,9 +46,8 @@ public class OnlineClassController {
         return ResponseEntity.ok(onlineClassService.getMyClasses(teacher.getId()));
     }
 
-    // =================================================================
+
     // DÀNH CHO ADMIN / QUẢN LÝ
-    // =================================================================
 
     // Tìm kiếm và phân trang
     // GET /api/v1/online-classes?keyword=Toan&status=active&page=1&size=10
@@ -59,10 +56,11 @@ public class OnlineClassController {
     public ResponseEntity<PageResponse<OnlineClassDto>> search(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String physicalClassId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(onlineClassService.search(keyword, status, page, size));
+        return ResponseEntity.ok(onlineClassService.search(keyword, status, physicalClassId, page, size));
     }
 
     // Xem chi tiết một lớp

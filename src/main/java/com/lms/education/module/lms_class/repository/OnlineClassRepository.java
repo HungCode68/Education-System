@@ -42,10 +42,12 @@ public interface OnlineClassRepository extends JpaRepository<OnlineClass, String
             "    LOWER(pc.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "    LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "    LOWER(t.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:status IS NULL OR oc.status = :status)")
+            "AND (:status IS NULL OR oc.status = :status) " +
+            "AND (:physicalClassId IS NULL OR pc.id = :physicalClassId)") //
     Page<OnlineClass> search(
             @Param("keyword") String keyword,
             @Param("status") String status,
+            @Param("physicalClassId") String physicalClassId, //
             Pageable pageable
     );
 

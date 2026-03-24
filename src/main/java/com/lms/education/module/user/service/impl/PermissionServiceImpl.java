@@ -5,6 +5,7 @@ import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.user.dto.PermissionDto;
 import com.lms.education.module.user.entity.Permission;
 import com.lms.education.module.user.repository.PermissionRepository;
+import com.lms.education.module.user.repository.RoleRepository;
 import com.lms.education.module.user.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionRepository permissionRepository;
+    private final RoleRepository roleRepository;
 
     @Override
     @Transactional
@@ -76,10 +78,20 @@ public class PermissionServiceImpl implements PermissionService {
         Permission permission = permissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy quyền với ID: " + id));
 
-        // Lưu ý: Nếu quyền này đã được gán cho Role (thông qua bảng role_permissions),
-        // việc xóa cứng có thể gây lỗi Foreign Key. Bạn có thể cần xóa các liên kết trước khi xóa quyền.
-        permissionRepository.delete(permission);
-        log.info("Đã xóa Quyền ID: {}", id);
+        // Kiểm tra xem quyền này đã được gán cho Role nào chưa
+        boolean isAssigned = roleRepository.isPermissionAssigned(id);
+
+        if (isAssigned) {
+            // NẾU ĐÃ GÁN -> CHẶN KHÔNG CHO XÓA VÀ BÁO LỖI
+            log.warn("Cố gắng xóa quyền ID: {} nhưng quyền này đang được gán cho Role", id);
+
+            // Bạn có thể dùng RuntimeException hoặc OperationNotPermittedException (nếu project đã có)
+            throw new RuntimeException("Không thể xóa! Quyền này đang được gán cho một hoặc nhiều vai trò. Vui lòng gỡ quyền khỏi các vai trò trước khi xóa.");
+        } else {
+            // NẾU CHƯA GÁN -> XÓA CỨNG (Xóa sạch khỏi DB)
+            permissionRepository.delete(permission);
+            log.info("Quyền ID: {} chưa được gán cho Role nào. Đã thực hiện XÓA CỨNG thành công", id);
+        }
     }
 
     @Override

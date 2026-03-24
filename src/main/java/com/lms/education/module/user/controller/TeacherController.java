@@ -48,11 +48,24 @@ public class TeacherController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ResponseEntity<Page<TeacherDto>> getAll(
-            @PageableDefault(sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) com.lms.education.module.user.entity.Teacher.Status status,
+            @RequestParam(required = false) String departmentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "fullName") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
     ) {
-        return ResponseEntity.ok(teacherService.getAll(pageable));
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+
+        Page<TeacherDto> teachers = teacherService.getAll(keyword, status, departmentId, pageable);
+        return ResponseEntity.ok(teachers);
     }
 
 
@@ -66,5 +79,22 @@ public class TeacherController {
         String email = (request != null) ? request.get("email") : null;
         teacherService.createAccountForExistingTeacher(id, email);
         return ResponseEntity.ok(Map.of("message", "Đã cấp tài khoản thành công"));
+    }
+
+    // POST /api/teachers/create-accounts-batch
+    // Body: { "teacherIds": ["id1", "id2", "id3"] }
+    @PostMapping("/create-accounts-batch")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
+    public ResponseEntity<Map<String, Object>> createAccountsBatch(
+            @RequestBody Map<String, java.util.List<String>> request) {
+
+        java.util.List<String> teacherIds = request.get("teacherIds");
+
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Danh sách ID giáo viên không được để trống!"));
+        }
+
+        Map<String, Object> result = teacherService.createAccountsBatch(teacherIds);
+        return ResponseEntity.ok(result);
     }
 }

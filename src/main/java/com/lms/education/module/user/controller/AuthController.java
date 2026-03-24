@@ -44,13 +44,26 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        // Spring Security kiểm tra Email và Mật khẩu
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
+        UserPrincipal userDetails = (UserPrincipal) authentication.getPrincipal();
+
+        // Kiểm tra trạng thái tài khoản trước khi cấp Token
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với ID: " + userDetails.getId()));
+
+        if (user.getStatus() != User.UserStatus.active) {
+            // Trả về lỗi 403 Forbidden nếu tài khoản không active
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(java.util.Map.of("message", "Đăng nhập thất bại! Tài khoản của bạn đang bị khóa hoặc vô hiệu hóa."));
+        }
+
+        // Nếu mọi thứ hợp lệ -> Tiếp tục cấp Token như cũ
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        UserPrincipal userDetails = (UserPrincipal) authentication.getPrincipal();
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .filter(auth -> auth.startsWith("ROLE_"))
@@ -64,11 +77,8 @@ public class AuthController {
 
         // Generate Refresh Token (JWT format)
         String refreshToken = jwtUtils.generateRefreshToken(userDetails.getUsername());
-        
-        // Save Refresh Token to DB
-        User user = userRepository.findById(userDetails.getId())
-                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with id: " + userDetails.getId()));
-        
+
+        // Save Refresh Token & Update Last Login to DB
         user.setRefreshToken(refreshToken);
         user.setRefreshTokenExpiry(LocalDateTime.now().plusNanos(refreshTokenDurationMs * 1000000)); // ms to nanos
         user.setLastLogin(LocalDateTime.now());

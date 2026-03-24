@@ -48,10 +48,11 @@ public class OnlineClassServiceImpl implements OnlineClassService {
     }
 
     @Override
-    public PageResponse<OnlineClassDto> search(String keyword, String status, int page, int size) {
+    public PageResponse<OnlineClassDto> search(String keyword, String status, String physicalClassId, int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
 
-        Page<OnlineClass> pageResult = onlineClassRepository.search(keyword, status, pageable);
+        // Truyền thêm physicalClassId vào repository
+        Page<OnlineClass> pageResult = onlineClassRepository.search(keyword, status, physicalClassId, pageable);
 
         List<OnlineClassDto> dtos = pageResult.getContent().stream()
                 .map(this::mapToDto)

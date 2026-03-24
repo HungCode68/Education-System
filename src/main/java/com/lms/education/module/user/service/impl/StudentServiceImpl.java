@@ -33,10 +33,30 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional
     public StudentDto create(StudentDto dto) {
-        if (studentRepository.existsByStudentCode(dto.getStudentCode())) {
-            throw new DuplicateResourceException("Mã học sinh đã tồn tại: " + dto.getStudentCode());
+
+        // LOGIC TỰ ĐỘNG SINH MÃ HỌC SINH (VD: HS26001)
+        // Lấy 2 số cuối của năm hiện tại (VD: Năm 2026 -> "26")
+        String currentYear = String.valueOf(java.time.Year.now().getValue()).substring(2);
+        String prefix = "HS" + currentYear;
+
+        String maxCode = studentRepository.findMaxStudentCodeByPrefix(prefix);
+        String newStudentCode;
+
+        if (maxCode == null) {
+            // Nếu chưa có học sinh nào trong năm nay
+            newStudentCode = prefix + "001";
+        } else {
+            // maxCode có dạng "HS26005" -> Cắt bỏ 4 ký tự đầu ("HS26") để lấy "005", chuyển thành số rồi cộng 1
+            int nextSeq = Integer.parseInt(maxCode.substring(4)) + 1;
+            // Format lại thành chuỗi 3 chữ số (VD: 6 -> "006")
+            newStudentCode = prefix + String.format("%03d", nextSeq);
         }
 
+        // Gán mã vừa sinh vào DTO để lưu xuống DB và làm mật khẩu mặc định
+        dto.setStudentCode(newStudentCode);
+        log.info("Hệ thống tự động sinh mã học sinh mới: {}", newStudentCode);
+
+        // CÁC LOGIC TẠO TÀI KHOẢN VÀ LƯU HỒ SƠ (Giữ nguyên như cũ)
         PhysicalClass physicalClass = null;
         if (dto.getCurrentClassId() != null) {
             physicalClass = physicalClassRepository.findById(dto.getCurrentClassId())
@@ -52,9 +72,11 @@ public class StudentServiceImpl implements StudentService {
             }
             User newUser = new User();
             newUser.setEmail(dto.getEmail());
+            // Mật khẩu lúc này sẽ lấy đúng mã học sinh vừa được hệ thống tự sinh (VD: HS26001)
             newUser.setPassword(passwordEncoder.encode(dto.getStudentCode()));
-            Role studentRole = roleRepository.findByCode("STUDENT")
-                    .orElseThrow(() -> new RuntimeException("Lỗi cấu hình: Chưa có role ROLE_STUDENT trong Database"));
+
+            com.lms.education.module.user.entity.Role studentRole = roleRepository.findByCode("STUDENT")
+                    .orElseThrow(() -> new RuntimeException("Lỗi cấu hình: Chưa có role STUDENT trong Database"));
 
             newUser.setRole(studentRole);
             savedUser = userRepository.save(newUser);
@@ -128,8 +150,10 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public Page<StudentDto> getAll(Pageable pageable) {
-        return studentRepository.findAll(pageable).map(this::mapToDto);
+    public Page<StudentDto> getAll(String keyword, Student.Status status, Integer admissionYear, Pageable pageable) {
+        // Truyền các tham số tìm kiếm xuống Repository
+        return studentRepository.searchAndFilter(keyword, status, admissionYear, pageable)
+                .map(this::mapToDto);
     }
 
     @Override
@@ -174,6 +198,72 @@ public class StudentServiceImpl implements StudentService {
         // Update ngược lại vào Student
         student.setUser(savedUser);
         studentRepository.save(student);
+    }
+
+
+    @Override
+    @Transactional
+    public java.util.Map<String, Object> createAccountsBatch(java.util.List<String> studentIds) {
+        int successCount = 0;
+        int failCount = 0;
+        java.util.List<String> failedDetails = new java.util.ArrayList<>();
+
+        // Query lấy Role đúng 1 lần duy nhất thay vì lấy n lần trong vòng lặp
+        com.lms.education.module.user.entity.Role studentRole = roleRepository.findByCode("STUDENT")
+                .orElseThrow(() -> new RuntimeException("Lỗi cấu hình: Chưa có role STUDENT trong Database"));
+
+        // Lấy toàn bộ danh sách học sinh cần tạo lên bằng 1 câu query
+        java.util.List<Student> students = studentRepository.findAllById(studentIds);
+
+        for (Student student : students) {
+            try {
+                // Kiểm tra Đã có tài khoản chưa?
+                if (student.getUser() != null) {
+                    failCount++;
+                    failedDetails.add("Học sinh " + student.getStudentCode() + " đã có tài khoản.");
+                    continue; // Bỏ qua, chạy sang em tiếp theo
+                }
+
+                // Tạo email mặc định
+                String finalEmail = student.getStudentCode().toLowerCase() + "@school.edu.vn";
+
+                // Kiểm tra Trùng email?
+                if (userRepository.existsByEmail(finalEmail)) {
+                    failCount++;
+                    failedDetails.add("Học sinh " + student.getStudentCode() + " - Email " + finalEmail + " đã bị trùng.");
+                    continue;
+                }
+
+                // Khởi tạo User mới
+                User newUser = new User();
+                newUser.setEmail(finalEmail);
+                newUser.setPassword(passwordEncoder.encode(student.getStudentCode()));
+                newUser.setRole(studentRole);
+
+                User savedUser = userRepository.save(newUser);
+
+                // Cập nhật lại vào hồ sơ học sinh
+                student.setUser(savedUser);
+                successCount++;
+
+            } catch (Exception e) {
+                failCount++;
+                failedDetails.add("Lỗi không xác định với học sinh " + student.getStudentCode() + ": " + e.getMessage());
+                log.error("Lỗi khi tạo tài khoản hàng loạt cho học sinh {}", student.getStudentCode(), e);
+            }
+        }
+
+        // Lưu toàn bộ danh sách học sinh đã được cập nhật User
+        studentRepository.saveAll(students);
+
+        // Đóng gói kết quả trả về
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("totalProcessed", studentIds.size());
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        result.put("failedDetails", failedDetails);
+
+        return result;
     }
 
     private StudentDto mapToDto(Student student) {

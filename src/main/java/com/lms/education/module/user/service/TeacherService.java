@@ -9,6 +9,7 @@ public interface TeacherService {
     TeacherDto update(String id, TeacherDto dto);
     void delete(String id);
     TeacherDto getById(String id);
-    Page<TeacherDto> getAll(Pageable pageable);
+    Page<TeacherDto> getAll(String keyword, com.lms.education.module.user.entity.Teacher.Status status, String departmentId, org.springframework.data.domain.Pageable pageable);
     void createAccountForExistingTeacher(String teacherId, String email);
+    java.util.Map<String, Object> createAccountsBatch(java.util.List<String> teacherIds);
 }

@@ -58,7 +58,7 @@ public class RoleController {
     public ResponseEntity<Map<String, String>> deleteRole(@PathVariable String id) {
         log.info("REST request - Xóa vai trò ID: {}", id);
         roleService.delete(id);
-        return ResponseEntity.ok(Map.of("message", "Đã xóa mềm role thành công"));
+        return ResponseEntity.ok(Map.of("message", "Đã xử lý xóa vai trò thành công"));
     }
 
     /**

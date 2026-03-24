@@ -17,7 +17,6 @@ import java.time.LocalDate;
 public class StudentDto {
     private String id;
 
-    @NotBlank(message = "Student code is required")
     private String studentCode;
 
     @NotBlank(message = "Full name is required")

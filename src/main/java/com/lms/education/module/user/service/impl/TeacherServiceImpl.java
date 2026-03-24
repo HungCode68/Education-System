@@ -34,27 +34,41 @@ public class TeacherServiceImpl implements TeacherService {
     @Override
     @Transactional
     public TeacherDto create(TeacherDto dto) {
-        if (teacherRepository.existsByTeacherCode(dto.getTeacherCode())) {
-            throw new DuplicateResourceException("Mã giáo viên đã tồn tại");
+        // LOGIC TỰ ĐỘNG SINH MÃ GIÁO VIÊN (VD: GV26001)
+        String currentYear = String.valueOf(java.time.Year.now().getValue()).substring(2);
+        String prefix = "GV" + currentYear;
+
+        String maxCode = teacherRepository.findMaxTeacherCodeByPrefix(prefix);
+        String newTeacherCode;
+
+        if (maxCode == null) {
+            newTeacherCode = prefix + "001";
+        } else {
+            int nextSeq = Integer.parseInt(maxCode.substring(4)) + 1;
+            newTeacherCode = prefix + String.format("%03d", nextSeq);
         }
 
+        dto.setTeacherCode(newTeacherCode);
+        log.info("Hệ thống tự động sinh mã giáo viên mới: {}", newTeacherCode);
+
+        // TẠO TÀI KHOẢN & LƯU HỒ SƠ
         Department department = null;
         if (dto.getDepartmentId() != null) {
             department = departmentRepository.findById(dto.getDepartmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Phòng ban không tồn tại"));
         }
 
-        // LOGIC MỚI: User có thể là null
         User savedUser = null;
 
-        // Chỉ tạo tài khoản nếu có nhập Email liên hệ
         if (dto.getEmailContact() != null && !dto.getEmailContact().isBlank()) {
             if (userRepository.existsByEmail(dto.getEmailContact())) {
                 throw new DuplicateResourceException("Email đã tồn tại: " + dto.getEmailContact());
             }
             User newUser = new User();
             newUser.setEmail(dto.getEmailContact());
+            // Mật khẩu lấy theo mã GV vừa sinh
             newUser.setPassword(passwordEncoder.encode(dto.getTeacherCode()));
+
             Role teacherRole = roleRepository.findByCode("SUBJECT_TEACHER")
                     .orElseThrow(() -> new RuntimeException("Lỗi: DB thiếu role SUBJECT_TEACHER"));
 
@@ -137,8 +151,9 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
-    public Page<TeacherDto> getAll(Pageable pageable) {
-        return teacherRepository.findAll(pageable).map(this::mapToDto);
+    public Page<TeacherDto> getAll(String keyword, Teacher.Status status, String departmentId, Pageable pageable) {
+        return teacherRepository.searchAndFilter(keyword, status, departmentId, pageable)
+                .map(this::mapToDto);
     }
 
 
@@ -183,6 +198,73 @@ public class TeacherServiceImpl implements TeacherService {
         teacher.setUser(savedUser);
         teacher.setEmailContact(finalEmail);
         teacherRepository.save(teacher);
+    }
+
+    @Override
+    @Transactional
+    public java.util.Map<String, Object> createAccountsBatch(java.util.List<String> teacherIds) {
+        int successCount = 0;
+        int failCount = 0;
+        java.util.List<String> failedDetails = new java.util.ArrayList<>();
+
+        // Query lấy Role đúng 1 lần duy nhất để gán cho tất cả
+        com.lms.education.module.user.entity.Role teacherRole = roleRepository.findByCode("SUBJECT_TEACHER")
+                .orElseThrow(() -> new RuntimeException("Lỗi cấu hình: Chưa có role SUBJECT_TEACHER trong Database"));
+
+        // Lấy toàn bộ danh sách giáo viên cần tạo bằng 1 câu query
+        java.util.List<Teacher> teachers = teacherRepository.findAllById(teacherIds);
+
+        for (Teacher teacher : teachers) {
+            try {
+                // Kiểm tra Đã có tài khoản chưa?
+                if (teacher.getUser() != null) {
+                    failCount++;
+                    failedDetails.add("Giáo viên " + teacher.getTeacherCode() + " đã có tài khoản.");
+                    continue; // Bỏ qua, chạy sang giáo viên tiếp theo
+                }
+
+                // Tạo email mặc định dựa trên mã giáo viên (VD: gv26001@school.edu.vn)
+                String finalEmail = teacher.getTeacherCode().toLowerCase() + "@school.edu.vn";
+
+                // Kiểm tra Trùng email?
+                if (userRepository.existsByEmail(finalEmail)) {
+                    failCount++;
+                    failedDetails.add("Giáo viên " + teacher.getTeacherCode() + " - Email " + finalEmail + " đã bị trùng.");
+                    continue;
+                }
+
+                // Khởi tạo User mới
+                User newUser = new User();
+                newUser.setEmail(finalEmail);
+                // Mật khẩu mặc định là mã giáo viên
+                newUser.setPassword(passwordEncoder.encode(teacher.getTeacherCode()));
+                newUser.setRole(teacherRole);
+
+                User savedUser = userRepository.save(newUser);
+
+                // Cập nhật lại vào hồ sơ giáo viên
+                teacher.setUser(savedUser);
+                teacher.setEmailContact(finalEmail); // Cập nhật luôn email liên hệ bằng email đăng nhập
+                successCount++;
+
+            } catch (Exception e) {
+                failCount++;
+                failedDetails.add("Lỗi không xác định với giáo viên " + teacher.getTeacherCode() + ": " + e.getMessage());
+                log.error("Lỗi khi tạo tài khoản hàng loạt cho giáo viên {}", teacher.getTeacherCode(), e);
+            }
+        }
+
+        // Lưu toàn bộ danh sách giáo viên đã được cập nhật
+        teacherRepository.saveAll(teachers);
+
+        // Đóng gói kết quả trả về cho Frontend
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("totalProcessed", teacherIds.size());
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        result.put("failedDetails", failedDetails);
+
+        return result;
     }
 
     private TeacherDto mapToDto(Teacher teacher) {

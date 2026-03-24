@@ -14,7 +14,7 @@ public interface OnlineClassService {
     List<OnlineClassDto> getMyClasses(String teacherId);
 
     // Tìm kiếm (Cho Admin)
-    PageResponse<OnlineClassDto> search(String keyword, String status, int page, int size);
+    PageResponse<OnlineClassDto> search(String keyword, String status, String physicalClassId, int page, int size);
 
     // Cập nhật thông tin cơ bản (Đổi tên, Đổi trạng thái Archive)
     // Lưu ý: Không cho tạo mới ở đây, vì tạo mới do TeachingAssignment tự làm

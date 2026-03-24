@@ -3,11 +3,13 @@ package com.lms.education.module.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "activity_logs")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -15,20 +17,20 @@ public class ActivityLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(length = 36)
     private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    // Lưu thẳng ID thay vì dùng @ManyToOne(User) để tốc độ ghi Log được nhanh nhất,
+    // tránh việc Hibernate phải query bảng User trước khi Insert Log.
+    @Column(name = "user_id", length = 36)
+    private String userId;
 
-    @Column(name = "actor_name", length = 100, columnDefinition = "NVARCHAR(100)")
+    @Column(name = "actor_name", columnDefinition = "NVARCHAR(100)")
     private String actorName;
 
     @Column(length = 50)
     private String module;
 
-    @Column(nullable = false, length = 50)
+    @Column(length = 50, nullable = false)
     private String action;
 
     @Column(name = "target_type", length = 50)
@@ -37,17 +39,13 @@ public class ActivityLog {
     @Column(name = "target_id", length = 36)
     private String targetId;
 
-    @Column(columnDefinition = "TEXT")
+    // Lưu dữ liệu dạng chuỗi JSON
+    @Column(columnDefinition = "JSON")
     private String details;
-
-    public enum LogStatus {
-        success, failure, error
-    }
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    @Builder.Default
-    private LogStatus status = LogStatus.success;
+    private LogStatus status;
 
     @Column(name = "ip_address", length = 45)
     private String ipAddress;
@@ -58,4 +56,18 @@ public class ActivityLog {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    // Enum trạng thái hành động
+    public enum LogStatus {
+        success,
+        failure,
+        error
+    }
+
+    @PrePersist
+    public void prePersist() {
+        if (this.status == null) {
+            this.status = LogStatus.success;
+        }
+    }
 }

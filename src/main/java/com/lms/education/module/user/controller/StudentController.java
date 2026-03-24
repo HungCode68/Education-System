@@ -1,10 +1,12 @@
 package com.lms.education.module.user.controller;
 
 import com.lms.education.module.user.dto.StudentDto;
+import com.lms.education.module.user.entity.Student;
 import com.lms.education.module.user.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -50,9 +52,26 @@ public class StudentController {
     @GetMapping
     @PreAuthorize("hasAuthority('STUDENT_VIEW') or hasAuthority('CLASS_VIEW')")
     public ResponseEntity<Page<StudentDto>> getAll(
-            @PageableDefault(sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Student.Status status,
+            @RequestParam(required = false) Integer admissionYear,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "fullName") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
     ) {
-        return ResponseEntity.ok(studentService.getAll(pageable));
+        // Cấu hình sắp xếp (Sort)
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        // Cấu hình phân trang (Pageable)
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Gọi Service
+        Page<StudentDto> students = studentService.getAll(keyword, status, admissionYear, pageable);
+
+        return ResponseEntity.ok(students);
     }
 
     // POST /api/students/{id}/create-account
@@ -66,5 +85,22 @@ public class StudentController {
         String email = (request != null) ? request.get("email") : null;
         studentService.createAccountForExistingStudent(id, email);
         return ResponseEntity.ok(Map.of("message", "Đã cấp tài khoản thành công"));
+    }
+
+    // POST /api/students/create-accounts-batch
+    // Body: { "studentIds": ["id1", "id2", "id3"] }
+    @PostMapping("/create-accounts-batch")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
+    public ResponseEntity<Map<String, Object>> createAccountsBatch(
+            @RequestBody Map<String, java.util.List<String>> request) {
+
+        java.util.List<String> studentIds = request.get("studentIds");
+
+        if (studentIds == null || studentIds.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Danh sách ID học sinh không được để trống!"));
+        }
+
+        Map<String, Object> result = studentService.createAccountsBatch(studentIds);
+        return ResponseEntity.ok(result);
     }
 }

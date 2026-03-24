@@ -18,7 +18,6 @@ public class TeacherDto {
 
     private String userId;
 
-    @NotBlank(message = "Teacher code is required")
     private String teacherCode;
 
     @NotBlank(message = "Full name is required")

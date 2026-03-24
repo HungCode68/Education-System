@@ -4,6 +4,7 @@ import com.lms.education.module.user.entity.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -21,4 +22,8 @@ public interface RoleRepository extends JpaRepository<Role, String> {
 
     // Tìm kiếm Role theo tên hoặc mã code (Hỗ trợ thanh Search trên giao diện quản lý Role)
     Page<Role> findByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(String name, String code, Pageable pageable);
+
+    // Kiểm tra xem có Role nào đang được gán Permission này không
+    @Query("SELECT COUNT(r) > 0 FROM Role r JOIN r.permissions p WHERE p.id = :permissionId")
+    boolean isPermissionAssigned(@org.springframework.data.repository.query.Param("permissionId") Integer permissionId);
 }

@@ -9,6 +9,7 @@ import com.lms.education.module.user.entity.Permission;
 import com.lms.education.module.user.entity.Role;
 import com.lms.education.module.user.repository.PermissionRepository;
 import com.lms.education.module.user.repository.RoleRepository;
+import com.lms.education.module.user.repository.UserRepository;
 import com.lms.education.module.user.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -84,11 +86,19 @@ public class RoleServiceImpl implements RoleService {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vai trò với ID: " + id));
 
-        // Lưu ý: Trong thực tế, nếu Role đã được gán cho User, việc xóa cứng (delete) có thể gây lỗi Foreign Key.
-        // Giải pháp an toàn là chuyển trạng thái sang Inactive (Xóa mềm):
-         role.setStatus(Role.RoleStatus.inactive);
-         roleRepository.save(role);
-        log.info("Đã xóa Vai trò ID: {}", id);
+        // Kiểm tra xem có User nào đang được gán Role này không
+        boolean isRoleAssigned = userRepository.existsByRoleId(id);
+
+        if (isRoleAssigned) {
+            // NẾU ĐÃ GÁN CHO USER -> XÓA MỀM (Chuyển trạng thái sang Inactive)
+            role.setStatus(Role.RoleStatus.inactive);
+            roleRepository.save(role);
+            log.info("Vai trò ID: {} đang được sử dụng bởi người dùng. Đã thực hiện XÓA MỀM (status = inactive)", id);
+        } else {
+            // NẾU CHƯA GÁN CHO AI -> XÓA CỨNG (Xóa sạch khỏi Database)
+            roleRepository.delete(role);
+            log.info("Vai trò ID: {} chưa được gán cho user nào. Đã thực hiện XÓA CỨNG thành công", id);
+        }
     }
 
     @Override

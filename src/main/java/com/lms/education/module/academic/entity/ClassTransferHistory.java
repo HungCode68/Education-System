@@ -46,7 +46,6 @@ public class ClassTransferHistory {
     private String reason;
 
     // --- Người thực hiện (Audit) ---
-    // Link tới bảng Users (Giám hiệu/Admin thực hiện thao tác)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;

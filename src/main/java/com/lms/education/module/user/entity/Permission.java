@@ -28,7 +28,8 @@ public class Permission {
         ASSIGNMENT,
         MATERIAL,
         GRADEBOOK,
-        REPORT
+        REPORT,
+        DEPARTMENT
     }
 
     @Enumerated(EnumType.STRING)
