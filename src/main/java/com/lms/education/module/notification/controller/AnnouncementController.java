@@ -112,7 +112,7 @@ public class AnnouncementController {
         return ResponseEntity.ok(Map.of("message", "Đã xóa thông báo và giải phóng file đính kèm thành công"));
     }
 
-    // --- Hàm Helper lấy ID từ Token ---
+
     private String getUserId(Principal principal) {
         UserPrincipal userPrincipal = (UserPrincipal) ((Authentication) principal).getPrincipal();
         return userPrincipal.getId();
