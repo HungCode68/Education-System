@@ -72,8 +72,7 @@ pipeline {
                     ${DOCKER_IMAGE}:${DOCKER_TAG}
                 """
 
-                echo '⏳ Đang chờ 30 giây để hệ thống ổn định và kết nối...'
-                sleep 30 // Chờ 30s là thời gian an toàn để Java khởi động xong
+                sh "docker logs -f lms-backend & sleep 15 ; kill \$!"
 
                 sh "docker system prune -a -f"
 
