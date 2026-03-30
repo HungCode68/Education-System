@@ -114,7 +114,7 @@ public class LearningMaterialController {
 
     // Khi người dùng ấn vào 1 file, Frontend gọi API này để lấy link tải thật
     @GetMapping("/{id}/download-url")
-    @PreAuthorize("hasAuthority('MATERIAL_DOWLOAD')")
+    @PreAuthorize("hasAuthority('MATERIAL_DOWNLOAD')")
     public ResponseEntity<Map<String, String>> getDownloadUrl(@PathVariable String id, Principal principal) {
         String username = principal.getName();
         String url = materialService.getMaterialDownloadUrl(id, username);

@@ -2,6 +2,7 @@ package com.lms.education.module.teaching_assignment.controller;
 
 import com.lms.education.module.teaching_assignment.dto.TeachingAssignmentDto;
 import com.lms.education.module.teaching_assignment.service.TeachingAssignmentService;
+import com.lms.education.utils.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +25,18 @@ public class TeachingAssignmentController {
     // POST /api/v1/teaching-assignments
     @PostMapping
     @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
-    public ResponseEntity<TeachingAssignmentDto> assignTeacher(@Valid @RequestBody TeachingAssignmentDto dto) {
-        log.info("Request phân công giáo viên: {}", dto.getTeacherId());
-        return ResponseEntity.ok(assignmentService.assignTeacher(dto));
+    public ResponseEntity<TeachingAssignmentDto> assignTeacher(
+            @Valid @RequestBody TeachingAssignmentDto dto,
+            java.security.Principal principal) {
+
+        // Lấy ID của Tổ trưởng/Admin đang thao tác
+        com.lms.education.security.UserPrincipal userPrincipal = (com.lms.education.security.UserPrincipal) ((org.springframework.security.core.Authentication) principal).getPrincipal();
+        String currentUserId = userPrincipal.getId();
+
+        log.info("Request phân công giáo viên: {} bởi user: {}", dto.getTeacherId(), currentUserId);
+
+        // Truyền thêm currentUserId vào Service
+        return ResponseEntity.ok(assignmentService.assignTeacher(dto, currentUserId));
     }
 
     // Hủy phân công (Xóa)
@@ -60,5 +70,22 @@ public class TeachingAssignmentController {
     ) {
         long count = assignmentService.countTeacherWorkload(teacherId, semesterId);
         return ResponseEntity.ok(Map.of("currentClasses", count));
+    }
+
+    // Xem danh sách phân công của Tổ bộ môn
+    // GET /api/v1/teaching-assignments/department
+    @GetMapping("/department")
+    @PreAuthorize("hasAnyRole('TEACHER_HEAD_DEPARTMENT', 'SYSTEM_ADMIN')")
+    public ResponseEntity<PageResponse<TeachingAssignmentDto>> getByDepartment(
+            @RequestParam String departmentId,
+            @RequestParam(required = false) String schoolYearId,
+            @RequestParam(required = false) String semesterId,
+            @RequestParam(required = false) String physicalClassId,
+            @RequestParam(required = false) String teacherId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(assignmentService.getAssignmentsByDepartment(
+                departmentId, schoolYearId, semesterId,physicalClassId, teacherId, page, size));
     }
 }

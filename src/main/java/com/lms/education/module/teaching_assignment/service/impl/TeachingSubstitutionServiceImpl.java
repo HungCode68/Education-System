@@ -4,9 +4,11 @@ import com.lms.education.exception.OperationNotPermittedException;
 import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.teaching_assignment.dto.TeachingSubstitutionDto;
 import com.lms.education.module.teaching_assignment.entity.TeachingAssignment;
+import com.lms.education.module.teaching_assignment.entity.TeachingAssignmentHistory;
 import com.lms.education.module.teaching_assignment.entity.TeachingSubstitution;
 import com.lms.education.module.teaching_assignment.repository.TeachingAssignmentRepository;
 import com.lms.education.module.teaching_assignment.repository.TeachingSubstitutionRepository;
+import com.lms.education.module.teaching_assignment.service.TeachingAssignmentHistoryService;
 import com.lms.education.module.teaching_assignment.service.TeachingSubstitutionService;
 import com.lms.education.module.user.entity.Teacher;
 import com.lms.education.module.user.repository.TeacherRepository;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,7 @@ public class TeachingSubstitutionServiceImpl implements TeachingSubstitutionServ
     private final TeachingSubstitutionRepository substitutionRepository;
     private final TeachingAssignmentRepository assignmentRepository;
     private final TeacherRepository teacherRepository;
+    private final TeachingAssignmentHistoryService historyService;
 
     @Override
     @Transactional
@@ -92,7 +96,19 @@ public class TeachingSubstitutionServiceImpl implements TeachingSubstitutionServ
                 .status(TeachingSubstitution.SubstitutionStatus.approved) // Mặc định Approved nếu Admin tạo
                 .build();
 
-        return mapToDto(substitutionRepository.save(entity));
+        TeachingSubstitution savedEntity = substitutionRepository.save(entity);
+
+        // VÁ LỖI TẠI ĐÂY: Ghi log Nhật ký hệ thống
+        historyService.log(
+                originalAssignment,
+                originalAssignment.getTeacher(),
+                subTeacher,
+                TeachingAssignmentHistory.ActionType.SUBSTITUTED, // Cờ: DẠY THAY
+                "Phân công dạy thay: " + (dto.getReason() != null ? dto.getReason() : "Không có lý do"),
+                "Tổ trưởng"
+        );
+
+        return mapToDto(savedEntity);
     }
 
     @Override
@@ -103,6 +119,15 @@ public class TeachingSubstitutionServiceImpl implements TeachingSubstitutionServ
 
         entity.setStatus(TeachingSubstitution.SubstitutionStatus.cancelled);
         substitutionRepository.save(entity);
+        historyService.log(
+                entity.getOriginalAssignment(),
+                entity.getSubTeacher(),
+                entity.getOriginalAssignment().getTeacher(),
+                TeachingAssignmentHistory.ActionType.UNASSIGNED,
+                "Hủy phân công dạy thay",
+                "Tổ trưởng"
+        );
+
         log.info("Đã hủy dạy thay ID: {}", id);
     }
 
@@ -139,6 +164,46 @@ public class TeachingSubstitutionServiceImpl implements TeachingSubstitutionServ
         return substitutionRepository.findBySubTeacherId(teacherId).stream()
                 .map(this::mapToDto)
                 .toList();
+    }
+
+    @Override
+    public PageResponse<TeachingSubstitutionDto> searchByDepartment(
+            String departmentId,
+            String schoolYearId,
+            String semesterId,
+            String keyword,
+            int page,
+            int size) {
+
+        log.info("Tìm kiếm lịch dạy thay của Tổ bộ môn ID: {}, schoolYear: {}, semester: {}, keyword: {}",
+                departmentId, schoolYearId, semesterId, keyword);
+
+        // Tạo đối tượng phân trang, sắp xếp theo thời gian tạo mới nhất (giảm dần)
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+
+        // Gọi Repository để lấy dữ liệu Entity
+        Page<TeachingSubstitution> pageResult = substitutionRepository.searchByDepartment(
+                departmentId,
+                schoolYearId,
+                semesterId,
+                keyword,
+                pageable
+        );
+
+        // Map danh sách Entity sang DTO
+        List<TeachingSubstitutionDto> dtos = pageResult.getContent().stream()
+                .map(this::mapToDto)
+                .toList();
+
+        // Đóng gói vào đối tượng PageResponse chuẩn của hệ thống
+        return PageResponse.<TeachingSubstitutionDto>builder()
+                .content(dtos)
+                .pageNo(pageResult.getNumber() + 1)
+                .pageSize(pageResult.getSize())
+                .totalElements(pageResult.getTotalElements())
+                .totalPages(pageResult.getTotalPages())
+                .last(pageResult.isLast())
+                .build();
     }
 
     // --- MAPPER (Flatten Data) ---

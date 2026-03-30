@@ -24,4 +24,6 @@ public interface PhysicalClassService {
 
     // Lấy danh sách lớp theo Năm và Khối (Dùng cho Dropdown)
     List<PhysicalClassDto> getDropdownList(String schoolYearId, String gradeId);
+
+    PhysicalClassDto getMyHomeroomClass(String userId);
 }

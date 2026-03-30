@@ -15,4 +15,7 @@ public interface AssignmentQuestionService {
 
     // Lấy toàn bộ danh sách câu hỏi của một bài tập (Sắp xếp theo thứ tự)
     List<AssignmentQuestionDto> getByAssignmentId(String assignmentId);
+
+    // Import danh sách câu hỏi từ file Excel
+    java.util.Map<String, Object> importFromExcel(String assignmentId, org.springframework.web.multipart.MultipartFile file, String userId);
 }

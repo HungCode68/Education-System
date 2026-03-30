@@ -42,7 +42,10 @@ public interface PhysicalClassRepository extends JpaRepository<PhysicalClass, St
     // Hàm lấy toàn bộ lớp của một năm học cũ
     List<PhysicalClass> findBySchoolYearId(String schoolYearId);
 
-    // 7. (Optional) Đếm số lượng học sinh hiện tại trong lớp (Nếu bạn chưa làm bảng class_students thì bỏ qua)
+    // (Optional) Đếm số lượng học sinh hiện tại trong lớp (Nếu bạn chưa làm bảng class_students thì bỏ qua)
     @Query("SELECT COUNT(cs) FROM ClassStudent cs WHERE cs.physicalClass.id = :classId AND cs.status = 'studying'")
     long countStudentsByClassId(@Param("classId") String classId);
+
+    // Tìm lớp học dựa trên ID của Giáo viên chủ nhiệm
+    Optional<PhysicalClass> findByHomeroomTeacher_Id(String teacherId);
 }

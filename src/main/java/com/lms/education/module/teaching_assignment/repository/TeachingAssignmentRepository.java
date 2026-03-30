@@ -112,4 +112,18 @@ public interface TeachingAssignmentRepository extends JpaRepository<TeachingAssi
             @Param("classId") String classId,
             @Param("semesterId") String semesterId
     );
+
+    // Tìm danh sách phân công theo Tổ bộ môn kèm bộ lọc
+    @Query("SELECT t FROM TeachingAssignment t WHERE t.teacher.department.id = :departmentId " +
+            "AND (:schoolYearId IS NULL OR t.schoolYear.id = :schoolYearId) " +
+            "AND (:semesterId IS NULL OR t.semester.id = :semesterId) " +
+            "AND (:physicalClassId IS NULL OR t.physicalClass.id = :physicalClassId) " +
+            "AND (:teacherId IS NULL OR t.teacher.id = :teacherId)")
+    Page<TeachingAssignment> findByDepartmentAndFilters(
+            @Param("departmentId") String departmentId,
+            @Param("schoolYearId") String schoolYearId,
+            @Param("semesterId") String semesterId,
+            @Param("physicalClassId") String physicalClassId,
+            @Param("teacherId") String teacherId,
+            Pageable pageable);
 }

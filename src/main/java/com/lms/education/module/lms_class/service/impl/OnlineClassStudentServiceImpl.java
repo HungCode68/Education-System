@@ -150,7 +150,7 @@ public class OnlineClassStudentServiceImpl implements OnlineClassStudentService 
 
     // --- MAPPER ---
     private OnlineClassStudentDto mapToDto(OnlineClassStudent entity) {
-        return OnlineClassStudentDto.builder()
+        OnlineClassStudentDto.OnlineClassStudentDtoBuilder builder = OnlineClassStudentDto.builder()
                 .id(entity.getId())
                 .onlineClassId(entity.getOnlineClass().getId())
                 .onlineClassName(entity.getOnlineClass().getName())
@@ -163,7 +163,13 @@ public class OnlineClassStudentServiceImpl implements OnlineClassStudentService 
                 .enrolledDate(entity.getEnrolledDate())
                 .status(entity.getStatus())
                 .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
+                .updatedAt(entity.getUpdatedAt());
+        if (entity.getOnlineClass().getTeachingAssignment() != null) {
+            builder.subjectName(entity.getOnlineClass().getTeachingAssignment().getSubject().getName())
+                    .physicalClassName(entity.getOnlineClass().getTeachingAssignment().getPhysicalClass().getName())
+                    .teacherName(entity.getOnlineClass().getTeachingAssignment().getTeacher().getFullName());
+        }
+
+        return builder.build();
     }
 }

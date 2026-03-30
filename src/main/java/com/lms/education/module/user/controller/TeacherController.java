@@ -2,6 +2,7 @@ package com.lms.education.module.user.controller;
 
 import com.lms.education.module.user.dto.TeacherDto;
 import com.lms.education.module.user.service.TeacherService;
+import com.lms.education.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -12,7 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.core.Authentication;
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -47,8 +49,16 @@ public class TeacherController {
         return ResponseEntity.ok(teacherService.getById(id));
     }
 
+    @GetMapping("/my-profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<TeacherDto> getMyProfile(Principal principal) {
+        UserPrincipal userPrincipal = (UserPrincipal) ((Authentication) principal).getPrincipal();
+        String userId = userPrincipal.getId();
+        return ResponseEntity.ok(teacherService.getByUserId(userId));
+    }
+
     @GetMapping
-    @PreAuthorize("hasAuthority('USER_CREATE')")
+    @PreAuthorize("hasAuthority('USER_VIEW')")
     public ResponseEntity<Page<TeacherDto>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) com.lms.education.module.user.entity.Teacher.Status status,

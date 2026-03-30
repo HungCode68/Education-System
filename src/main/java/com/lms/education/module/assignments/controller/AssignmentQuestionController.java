@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
 import java.util.List;
@@ -94,5 +95,25 @@ public class AssignmentQuestionController {
     private String getUserId(Principal principal) {
         UserPrincipal userPrincipal = (UserPrincipal) ((Authentication) principal).getPrincipal();
         return userPrincipal.getId();
+    }
+
+    /**
+     * IMPORT CÂU HỎI TỪ FILE EXCEL
+     */
+    @PostMapping("/assignment/{assignmentId}/import")
+    public ResponseEntity<Map<String, Object>> importFromExcel(
+            @PathVariable String assignmentId,
+            @RequestParam("file") MultipartFile file,
+            Principal principal) {
+
+        String userId = getUserId(principal);
+        log.info("REST request - User {} đang import Excel cho bài tập {}", userId, assignmentId);
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "File upload không được để trống!"));
+        }
+
+        Map<String, Object> result = questionService.importFromExcel(assignmentId, file, userId);
+        return ResponseEntity.ok(result);
     }
 }

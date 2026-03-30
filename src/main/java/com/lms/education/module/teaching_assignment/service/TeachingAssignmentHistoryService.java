@@ -30,5 +30,5 @@ public interface TeachingAssignmentHistoryService {
     List<TeachingAssignmentHistoryDto> getByTeacher(String teacherId);
 
     // Tìm kiếm chung (Admin)
-    PageResponse<TeachingAssignmentHistoryDto> search(String keyword, int page, int size);
+    PageResponse<TeachingAssignmentHistoryDto> search(String keyword, String actionTypeStr, int page, int size);
 }

@@ -1,6 +1,7 @@
 package com.lms.education.module.teaching_assignment.service;
 
 import com.lms.education.module.teaching_assignment.dto.TeachingAssignmentDto;
+import com.lms.education.utils.PageResponse;
 
 import java.util.List;
 
@@ -9,7 +10,7 @@ public interface TeachingAssignmentService {
     // Phân công giáo viên dạy một môn cho một lớp trong học kỳ cụ thể.
     // Nếu chưa có ai dạy -> Tạo mới.
     // Nếu đã có người dạy -> Cập nhật (Thay thế giáo viên cũ bằng giáo viên mới).
-    TeachingAssignmentDto assignTeacher(TeachingAssignmentDto dto);
+    TeachingAssignmentDto assignTeacher(TeachingAssignmentDto dto, String currentUserId);
 
     //Hủy phân công (Gỡ giáo viên khỏi lớp) @param assignmentId ID của bản ghi phân công cần xóa.
     void unassignTeacher(String assignmentId);
@@ -22,6 +23,8 @@ public interface TeachingAssignmentService {
     // Dùng để kiểm tra tải công việc (Workload) trước khi phân công thêm.
     long countTeacherWorkload(String teacherId, String semesterId);
 
+    PageResponse<TeachingAssignmentDto> getAssignmentsByDepartment(
+            String departmentId, String schoolYearId, String semesterId,String physicalClassId, String teacherId, int page, int size);
     // Bạn có thể mở rộng thêm các hàm sau này nếu cần:
     // List<TeachingAssignmentDto> getAssignmentsByTeacher(String teacherId, String semesterId); // Xem lịch dạy của thầy A
 }

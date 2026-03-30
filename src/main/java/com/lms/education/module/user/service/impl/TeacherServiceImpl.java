@@ -151,6 +151,14 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public TeacherDto getByUserId(String userId) {
+        Teacher teacher = teacherRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hồ sơ giáo viên không tồn tại!"));
+        return mapToDto(teacher);
+    }
+
+    @Override
     public Page<TeacherDto> getAll(String keyword, Teacher.Status status, String departmentId, Pageable pageable) {
         return teacherRepository.searchAndFilter(keyword, status, departmentId, pageable)
                 .map(this::mapToDto);

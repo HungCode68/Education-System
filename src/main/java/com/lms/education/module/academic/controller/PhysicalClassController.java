@@ -2,6 +2,7 @@ package com.lms.education.module.academic.controller;
 
 import com.lms.education.module.academic.dto.PhysicalClassDto;
 import com.lms.education.module.academic.service.PhysicalClassService;
+import com.lms.education.security.UserPrincipal;
 import com.lms.education.utils.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -9,8 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -87,5 +90,15 @@ public class PhysicalClassController {
 
         // Trả về JSON message thành công (như bạn yêu cầu)
         return ResponseEntity.ok(Map.of("message", "Xóa lớp học thành công!"));
+    }
+
+    // Lấy thông tin lớp chủ nhiệm
+    @GetMapping("/my-homeroom")
+    @PreAuthorize("hasAuthority('HOMEROOM_TEACHER') or hasRole('HOMEROOM_TEACHER')")
+    public ResponseEntity<PhysicalClassDto> getMyHomeroomClass(Principal principal) {
+        UserPrincipal userPrincipal = (UserPrincipal) ((Authentication) principal).getPrincipal();
+        String userId = userPrincipal.getId();
+
+        return ResponseEntity.ok(physicalClassService.getMyHomeroomClass(userId));
     }
 }

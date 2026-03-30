@@ -2,6 +2,7 @@ package com.lms.education.module.assignments.service.impl;
 
 import com.lms.education.exception.OperationNotPermittedException;
 import com.lms.education.exception.ResourceNotFoundException;
+import com.lms.education.module.academic.repository.ClassStudentRepository;
 import com.lms.education.module.learning_material.service.MinioStorageService;
 import com.lms.education.module.lms_class.entity.OnlineClass;
 import com.lms.education.module.lms_class.repository.OnlineClassRepository;
@@ -10,6 +11,8 @@ import com.lms.education.module.assignments.entity.Assignment;
 import com.lms.education.module.assignments.repository.AssignmentRepository;
 import com.lms.education.module.assignments.service.AssignmentService;
 import com.lms.education.module.lms_class.repository.OnlineClassStudentRepository;
+import com.lms.education.module.notification.entity.Notification;
+import com.lms.education.module.notification.service.NotificationService;
 import com.lms.education.module.user.entity.Student;
 import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.StudentRepository;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +39,8 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final OnlineClassStudentRepository onlineClassStudentRepository;
     private final MinioStorageService minioStorageService;
     private final StudentRepository studentRepository;
+    private final NotificationService notificationService;
+    private final ClassStudentRepository classStudentRepository;
 
     @Override
     @Transactional
@@ -79,6 +85,58 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         Assignment savedAssignment = assignmentRepository.save(assignment);
         log.info("Giáo viên {} đã tạo thành công bài tập: {}", creator.getEmail(), savedAssignment.getTitle());
+
+
+        //BẮT ĐẦU LOGIC BẮN THÔNG BÁO
+        try {
+            String targetPhysicalClassId = null;
+
+            // Từ Bài tập (Assignment) -> Lớp Online (OnlineClass) -> Phân công (TeachingAssignment) -> Lớp Vật Lý (PhysicalClass)
+            if (savedAssignment.getOnlineClass() != null
+                    && savedAssignment.getOnlineClass().getTeachingAssignment() != null
+                    && savedAssignment.getOnlineClass().getTeachingAssignment().getPhysicalClass() != null) {
+
+                targetPhysicalClassId = savedAssignment.getOnlineClass().getTeachingAssignment().getPhysicalClass().getId();
+            }
+
+            // Nếu tìm thấy Lớp Vật Lý -> Lấy danh sách học sinh đang học
+            if (targetPhysicalClassId != null) {
+
+                // Gọi hàm của ClassStudentRepository
+                List<com.lms.education.module.academic.entity.ClassStudent> activeClassStudents =
+                        classStudentRepository.findAllByPhysicalClassIdAndStatus(
+                                targetPhysicalClassId,
+                                com.lms.education.module.academic.entity.ClassStudent.StudentStatus.studying
+                        );
+
+                int sentCount = 0;
+
+                // Vòng lặp duyệt qua từng ClassStudent
+                for (com.lms.education.module.academic.entity.ClassStudent cs : activeClassStudents) {
+
+                    String studentUserId = cs.getStudent().getUser().getId();
+
+                    notificationService.sendNotification(
+                            studentUserId,                        // Người nhận (Học sinh)
+                            userId,                               // Người gửi (Giáo viên)
+                            "Bài tập mới: " + savedAssignment.getTitle(),
+                            "Giáo viên vừa giao bài tập mới. Hãy vào làm ngay nhé!",
+                            com.lms.education.module.notification.entity.Notification.NotificationType.assignment,
+                            "assignments",
+                            savedAssignment.getId(),
+                            "{\"dueDate\": \"" + savedAssignment.getDueTime() + "\"}"
+                    );
+
+                    sentCount++;
+                }
+                log.info("Đã gửi thông báo giao bài tập cho {} học sinh thuộc Lớp Vật Lý gốc {}", sentCount, targetPhysicalClassId);
+            } else {
+                log.warn("Bài tập {} chưa đủ liên kết đến Lớp Vật Lý -> Bỏ qua gửi thông báo.", savedAssignment.getId());
+            }
+
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi thông báo bài tập mới: ", e);
+        }
 
         return mapToDto(savedAssignment);
     }

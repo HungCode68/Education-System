@@ -38,6 +38,10 @@ public class OnlineClassStudentDto {
     // Thông tin Lớp
     private String onlineClassName;
 
+    private String subjectName;       // Tên môn học
+    private String physicalClassName; // Tên lớp gốc (VD: 10A1)
+    private String teacherName;       // Tên giáo viên giảng dạy
+
     // --- TRẠNG THÁI GHI DANH ---
 
     private OnlineClassStudent.EnrollmentSource enrollmentSource; // system, manual

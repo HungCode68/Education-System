@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,9 +65,20 @@ public class TeachingAssignmentHistoryServiceImpl implements TeachingAssignmentH
     }
 
     @Override
-    public PageResponse<TeachingAssignmentHistoryDto> search(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page - 1, size);
-        Page<TeachingAssignmentHistory> pageResult = historyRepository.search(keyword, pageable);
+    public PageResponse<TeachingAssignmentHistoryDto> search(String keyword, String actionTypeStr, int page, int size) {
+        // Nên sắp xếp log mới nhất lên đầu
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("changedAt").descending());
+
+        TeachingAssignmentHistory.ActionType actionType = null;
+        if (actionTypeStr != null && !actionTypeStr.trim().isEmpty()) {
+            try {
+                actionType = TeachingAssignmentHistory.ActionType.valueOf(actionTypeStr);
+            } catch (IllegalArgumentException e) {
+                log.warn("Action Type không hợp lệ: {}", actionTypeStr);
+            }
+        }
+
+        Page<TeachingAssignmentHistory> pageResult = historyRepository.searchWithFilter(keyword, actionType, pageable);
 
         List<TeachingAssignmentHistoryDto> dtos = pageResult.getContent().stream()
                 .map(this::mapToDto)

@@ -28,4 +28,6 @@ public interface TeachingSubstitutionService {
 
     // Lấy danh sách dạy thay của một giáo viên (Cho GV xem lịch mình phải dạy thay)
     List<TeachingSubstitutionDto> getBySubTeacher(String teacherId);
+
+    PageResponse<TeachingSubstitutionDto> searchByDepartment(String departmentId, String schoolYearId, String semesterId, String keyword, int page, int size);
 }

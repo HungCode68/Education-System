@@ -26,10 +26,11 @@ public class TeachingAssignmentHistoryController {
     @PreAuthorize("hasAuthority('TEACHING_ASSIGN')")
     public ResponseEntity<PageResponse<TeachingAssignmentHistoryDto>> search(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String actionType,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return ResponseEntity.ok(historyService.search(keyword, page, size));
+        return ResponseEntity.ok(historyService.search(keyword,actionType, page, size));
     }
 
     // Xem lịch sử của một Phân công cụ thể

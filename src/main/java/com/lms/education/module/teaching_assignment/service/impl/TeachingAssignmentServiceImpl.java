@@ -1,6 +1,7 @@
 package com.lms.education.module.teaching_assignment.service.impl;
 
 import com.lms.education.exception.DuplicateResourceException;
+import com.lms.education.exception.OperationNotPermittedException;
 import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.lms_class.repository.OnlineClassRepository;
 import com.lms.education.module.lms_class.entity.OnlineClass;
@@ -16,12 +17,19 @@ import com.lms.education.module.teaching_assignment.repository.TeachingSubstitut
 import com.lms.education.module.teaching_assignment.service.TeachingAssignmentHistoryService;
 import com.lms.education.module.teaching_assignment.service.TeachingAssignmentService;
 import com.lms.education.module.user.entity.Teacher;
+import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.TeacherRepository;
+import com.lms.education.module.user.repository.UserRepository;
+import com.lms.education.utils.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -42,10 +50,11 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
     private final GradeSubjectRepository gradeSubjectRepository;
     private final TeachingSubstitutionRepository substitutionRepository;
     private final TeachingAssignmentHistoryService historyService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
-    public TeachingAssignmentDto assignTeacher(TeachingAssignmentDto dto) {
+    public TeachingAssignmentDto assignTeacher(TeachingAssignmentDto dto, String currentUserId) {
         log.info("Phân công: GV {} dạy môn {} cho lớp {}", dto.getTeacherId(), dto.getSubjectId(), dto.getPhysicalClassId());
 
         // VALIDATE DỮ LIỆU ĐẦU VÀO (Tồn tại hay không?)
@@ -57,6 +66,22 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
 
         Teacher teacher = teacherRepository.findById(dto.getTeacherId())
                 .orElseThrow(() -> new ResourceNotFoundException("Giáo viên không tồn tại"));
+
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản đang thao tác không tồn tại"));
+
+        // Nếu người đang phân công là Tổ trưởng (không phải Admin)
+        if (currentUser.getRole().getCode().equals("HEAD_TEACHER")) {
+            // Lấy hồ sơ giáo viên của Tổ trưởng
+            Teacher headTeacher = teacherRepository.findByUserId(currentUserId)
+                    .orElseThrow(() -> new OperationNotPermittedException("Tài khoản Tổ trưởng chưa có hồ sơ Giáo viên"));
+
+            // So sánh ID Tổ bộ môn của Tổ trưởng và Giáo viên được phân công
+            if (headTeacher.getDepartment() == null || teacher.getDepartment() == null ||
+                    !headTeacher.getDepartment().getId().equals(teacher.getDepartment().getId())) {
+                throw new OperationNotPermittedException("Lỗi bảo mật: Bạn chỉ được phép phân công giảng dạy cho các giáo viên thuộc tổ chuyên môn của mình!");
+            }
+        }
 
         Semester semester = semesterRepository.findById(dto.getSemesterId())
                 .orElseThrow(() -> new ResourceNotFoundException("Học kỳ không tồn tại"));
@@ -203,6 +228,14 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
         assignment.setStatus(TeachingAssignment.AssignmentStatus.inactive);
         assignmentRepository.save(assignment);
 
+        Optional<OnlineClass> onlineClassOpt = onlineClassRepository.findByTeachingAssignmentId(assignmentId);
+        if (onlineClassOpt.isPresent()) {
+            OnlineClass onlineClass = onlineClassOpt.get();
+            onlineClass.setStatus("archived"); // Chuyển status lớp LMS thành ngưng hoạt động
+            onlineClassRepository.save(onlineClass);
+            log.info("Đã khóa lớp học Online ID {} do giáo viên bị gỡ phân công", onlineClass.getId());
+        }
+
         historyService.log(
                 assignment,
                 oldTeacher,
@@ -228,6 +261,30 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
         return assignmentRepository.countByTeacherIdAndSemesterIdAndStatus(
                 teacherId, semesterId, TeachingAssignment.AssignmentStatus.active
         );
+    }
+
+    @Override
+    public PageResponse<TeachingAssignmentDto> getAssignmentsByDepartment(
+            String departmentId, String schoolYearId, String semesterId, String physicalClassId, String teacherId, int page, int size) {
+
+        // Sắp xếp mới nhất lên đầu
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+
+        Page<TeachingAssignment> pageResult = assignmentRepository.findByDepartmentAndFilters(
+                departmentId, schoolYearId, semesterId,physicalClassId, teacherId, pageable);
+
+        List<TeachingAssignmentDto> dtos = pageResult.getContent().stream()
+                .map(this::mapToDto) // mapToDto đã có sẵn trong file của bạn
+                .toList();
+
+        return PageResponse.<TeachingAssignmentDto>builder()
+                .content(dtos)
+                .pageNo(pageResult.getNumber() + 1)
+                .pageSize(pageResult.getSize())
+                .totalElements(pageResult.getTotalElements())
+                .totalPages(pageResult.getTotalPages())
+                .last(pageResult.isLast())
+                .build();
     }
 
     // --- MAPPER ---

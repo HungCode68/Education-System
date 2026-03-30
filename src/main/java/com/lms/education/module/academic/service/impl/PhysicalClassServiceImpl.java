@@ -193,6 +193,20 @@ public class PhysicalClassServiceImpl implements PhysicalClassService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PhysicalClassDto getMyHomeroomClass(String userId) {
+        //  Tìm hồ sơ Teacher từ userId (Token)
+        Teacher teacher = teacherRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ giáo viên"));
+
+        // Tìm lớp Offline mà giáo viên này làm chủ nhiệm
+        PhysicalClass physicalClass = classRepository.findByHomeroomTeacher_Id(teacher.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Bạn chưa được phân công chủ nhiệm lớp nào!"));
+
+        return mapToDto(physicalClass);
+    }
+
     // --- Helper Mapper ---
     private PhysicalClassDto mapToDto(PhysicalClass entity) {
         return PhysicalClassDto.builder()

@@ -79,4 +79,16 @@ public class TeachingSubstitutionController {
         substitutionService.cancel(id);
         return ResponseEntity.ok(Map.of("message", "Đã hủy yêu cầu dạy thay thành công"));
     }
+
+    @GetMapping("/department")
+    @PreAuthorize("hasAnyRole('TEACHER_HEAD_DEPARTMENT', 'SYSTEM_ADMIN')")
+    public ResponseEntity<PageResponse<TeachingSubstitutionDto>> searchByDepartment(
+            @RequestParam String departmentId,
+            @RequestParam(required = false) String schoolYearId,
+            @RequestParam(required = false) String semesterId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(substitutionService.searchByDepartment(departmentId, schoolYearId, semesterId, keyword, page, size));
+    }
 }

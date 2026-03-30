@@ -104,4 +104,14 @@ public interface TeachingSubstitutionRepository extends JpaRepository<TeachingSu
             @Param("assignmentId") String assignmentId,
             @Param("queryDate") LocalDate queryDate
     );
+
+    @Query("SELECT t FROM TeachingSubstitution t WHERE t.originalAssignment.teacher.department.id = :departmentId " +
+            "AND (:schoolYearId IS NULL OR t.originalAssignment.schoolYear.id = :schoolYearId) " +
+            "AND (:semesterId IS NULL OR t.originalAssignment.semester.id = :semesterId) " +
+            "AND (:keyword IS NULL OR LOWER(t.subTeacher.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<TeachingSubstitution> searchByDepartment(@Param("departmentId") String departmentId,
+                                                  @Param("schoolYearId") String schoolYearId,
+                                                  @Param("semesterId") String semesterId,
+                                                  @Param("keyword") String keyword,
+                                                  Pageable pageable);
 }

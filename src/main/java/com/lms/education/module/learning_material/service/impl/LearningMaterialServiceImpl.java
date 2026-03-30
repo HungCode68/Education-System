@@ -73,7 +73,7 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         OnlineClass onlineClass = classRepository.findById(dto.getOnlineClassId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lớp học không tồn tại"));
 
-        User uploader = userRepository.findById(uploaderId)
+        User uploader = userRepository.findByEmail(uploaderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
         // Link thì không có MinIO, filePath chính là URL youtube/drive
@@ -144,15 +144,18 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Logic check: Nếu là role STUDENT thì check xem có trong lớp không, nếu là TEACHER thì check xem có dạy không.
-        if (currentReqUser.getRole().equals("STUDENT")) {
+        String roleCode = currentReqUser.getRole().getCode();
+
+        if (roleCode.equalsIgnoreCase("STUDENT")){
             checkStudentPermissionForClass(classId, username);
             // Học sinh thì chỉ được tải file ĐÃ PUBLISHED
             if (material.getStatus() != LearningMaterial.MaterialStatus.published) {
                 throw new AccessDeniedException("Tài liệu này chưa được xuất bản");
             }
-        } else if (currentReqUser.getRole().equals("SUBJECT_TEACHER")) {
+        } else if (roleCode.equalsIgnoreCase("SUBJECT_TEACHER") || roleCode.equalsIgnoreCase("HOMEROOM_TEACHER")) {
             checkTeacherPermissionForClass(classId, username);
         } else {
+            // Có thể mở rộng cho ADMIN nếu cần
             throw new AccessDeniedException("Bạn không có quyền truy cập");
         }
 

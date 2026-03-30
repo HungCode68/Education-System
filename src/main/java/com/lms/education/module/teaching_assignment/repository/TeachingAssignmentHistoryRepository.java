@@ -53,4 +53,21 @@ public interface TeachingAssignmentHistoryRepository extends JpaRepository<Teach
             "   LOWER(nt.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "ORDER BY h.changedAt DESC")
     Page<TeachingAssignmentHistory> search(@Param("keyword") String keyword, Pageable pageable);
+
+    @Query("SELECT h FROM TeachingAssignmentHistory h " +
+            "LEFT JOIN h.assignment a " +
+            "LEFT JOIN a.physicalClass pc " +
+            "LEFT JOIN a.subject sub " +
+            "LEFT JOIN h.oldTeacher ot " +
+            "LEFT JOIN h.newTeacher nt " +
+            "WHERE (:keyword IS NULL OR :keyword = '' OR " +
+            "LOWER(pc.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(sub.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(nt.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ot.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:actionType IS NULL OR h.actionType = :actionType)")
+    Page<TeachingAssignmentHistory> searchWithFilter(
+            @Param("keyword") String keyword,
+            @Param("actionType") TeachingAssignmentHistory.ActionType actionType,
+            Pageable pageable);
 }
