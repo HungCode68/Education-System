@@ -89,7 +89,7 @@ public class NotificationController {
         return ResponseEntity.ok(Map.of("message", "Đã đánh dấu đọc tất cả thông báo"));
     }
 
-
+    // --- Hàm Helper lấy ID từ Token ---
     private String getUserId(Principal principal) {
         UserPrincipal userPrincipal = (UserPrincipal) ((Authentication) principal).getPrincipal();
         return userPrincipal.getId();
