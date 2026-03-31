@@ -92,4 +92,10 @@ public class ClassStudentController {
         classStudentService.promoteStudents(oldClassId, newClassId);
         return ResponseEntity.ok(Map.of("message", "Đã thực hiện lên lớp thành công!"));
     }
+
+    @PostMapping("/sync-current-class")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')") // Bạn đổi lại quyền Admin cao nhất của hệ thống nhé
+    public ResponseEntity<java.util.Map<String, Object>> syncStudentCurrentClass() {
+        return ResponseEntity.ok(classStudentService.syncStudentCurrentClass());
+    }
 }

@@ -64,6 +64,9 @@ public class ClassStudentServiceImpl implements ClassStudentService {
                 .status(ClassStudent.StudentStatus.studying)
                 .build();
 
+        student.setCurrentClass(physicalClass);
+        studentRepository.save(student);
+
         return mapToDto(classStudentRepository.save(entity));
     }
 
@@ -106,6 +109,7 @@ public class ClassStudentServiceImpl implements ClassStudentService {
 
         // THUẬT TOÁN "CHIA BÀI" (ROUND ROBIN) CÓ KIỂM TRA SĨ SỐ
         List<ClassStudent> toSaveList = new ArrayList<>();
+        List<Student> studentsToUpdate = new ArrayList<>();
         int classIndex = 0;
         int totalClasses = targetClasses.size();
         Map<String, Integer> resultReport = new HashMap<>(); // Để báo cáo kết quả: Lớp A thêm 5, Lớp B thêm 5
@@ -130,6 +134,8 @@ public class ClassStudentServiceImpl implements ClassStudentService {
                             .status(ClassStudent.StudentStatus.studying)
                             .build();
                     toSaveList.add(newMapping);
+                    student.setCurrentClass(currentClass);
+                    studentsToUpdate.add(student);
 
                     // Cập nhật bộ đếm tạm thời
                     classCountMap.put(currentClass, currentSize + 1);
@@ -151,6 +157,7 @@ public class ClassStudentServiceImpl implements ClassStudentService {
 
         // Lưu Batch xuống DB (Hiệu năng cao)
         classStudentRepository.saveAll(toSaveList);
+        studentRepository.saveAll(studentsToUpdate);
 
         // 6. Trả về báo cáo dạng Text
         Map<String, String> finalResponse = new HashMap<>();
@@ -184,6 +191,7 @@ public class ClassStudentServiceImpl implements ClassStudentService {
 
         // Chuẩn bị danh sách mới
         List<ClassStudent> newStudents = new ArrayList<>();
+        List<Student> studentsToUpdate = new ArrayList<>();
         // Lấy STT hiện tại của lớp mới (thường là 0 vì lớp mới tinh)
         int currentStt = 0;
 
@@ -201,6 +209,10 @@ public class ClassStudentServiceImpl implements ClassStudentService {
                     .status(ClassStudent.StudentStatus.studying)
                     .build();
             newStudents.add(newItem);
+
+            Student student = oldItem.getStudent();
+            student.setCurrentClass(newClass);
+            studentsToUpdate.add(student);
         }
 
         // Validate Sĩ số tổng
@@ -210,6 +222,7 @@ public class ClassStudentServiceImpl implements ClassStudentService {
 
         // Save
         classStudentRepository.saveAll(newStudents);
+        studentRepository.saveAll(studentsToUpdate);
         log.info("Đã chuyển {} học sinh từ {} sang {}", newStudents.size(), oldClass.getName(), newClass.getName());
     }
 
@@ -232,8 +245,20 @@ public class ClassStudentServiceImpl implements ClassStudentService {
     }
 
     @Override
+    @Transactional
     public void removeStudentFromClass(String id) {
+        // Tìm bản ghi xếp lớp trước
+        ClassStudent cs = classStudentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin xếp lớp"));
+
+        // Lấy học sinh ra và Reset currentClass về null
+        Student student = cs.getStudent();
+        student.setCurrentClass(null);
+        studentRepository.save(student);
+
+        // Xóa bản ghi xếp lớp
         classStudentRepository.deleteById(id);
+        log.info("Đã xóa học sinh {} khỏi lớp và reset current_class", student.getFullName());
     }
 
     @Override
@@ -246,6 +271,54 @@ public class ClassStudentServiceImpl implements ClassStudentService {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Trạng thái không hợp lệ");
         }
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> syncStudentCurrentClass() {
+        log.info("Bắt đầu chạy Tool đồng bộ current_class_id cho toàn bộ học sinh...");
+
+        // Lấy toàn bộ dữ liệu xếp lớp hiện có trong Database
+        List<ClassStudent> allMappings = classStudentRepository.findAll();
+
+        // Lọc ra những em ĐANG HỌC (status = studying)
+        List<ClassStudent> activeMappings = allMappings.stream()
+                .filter(cs -> cs.getStatus() == ClassStudent.StudentStatus.studying)
+                .toList();
+
+        List<Student> studentsToUpdate = new ArrayList<>();
+        int updateCount = 0;
+
+        // Duyệt qua từng bản ghi và đối chiếu với hồ sơ Student gốc
+        for (ClassStudent cs : activeMappings) {
+            Student student = cs.getStudent();
+            PhysicalClass actualClass = cs.getPhysicalClass();
+
+            if (student.getCurrentClass() == null ||
+                    !student.getCurrentClass().getId().equals(actualClass.getId())) {
+
+                // Đồng bộ lại cho chuẩn
+                student.setCurrentClass(actualClass);
+                studentsToUpdate.add(student);
+                updateCount++;
+            }
+        }
+
+        // Lưu đồng loạt (Batch Update) xuống Database để tối ưu hiệu năng
+        if (!studentsToUpdate.isEmpty()) {
+            studentRepository.saveAll(studentsToUpdate);
+            log.info("Đã đồng bộ thành công current_class_id cho {} học sinh.", updateCount);
+        } else {
+            log.info("Dữ liệu đã chuẩn xác, không có học sinh nào cần đồng bộ.");
+        }
+
+        // Trả về báo cáo
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Đồng bộ dữ liệu thành công!");
+        result.put("totalActiveRecords", activeMappings.size());
+        result.put("updatedCount", updateCount);
+
+        return result;
     }
 
     // Helper Mapper

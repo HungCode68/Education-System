@@ -110,11 +110,14 @@ public class StudentServiceImpl implements StudentService {
         }
 
         if (dto.getCurrentClassId() != null) {
-            PhysicalClass physicalClass = physicalClassRepository.findById(dto.getCurrentClassId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + dto.getCurrentClassId()));
-            student.setCurrentClass(physicalClass);
-        } else {
-            student.setCurrentClass(null);
+            if (dto.getCurrentClassId().trim().isEmpty()) {
+                student.setCurrentClass(null);
+            } else {
+                // Nếu có ID hợp lệ -> Cập nhật lớp mới
+                PhysicalClass physicalClass = physicalClassRepository.findById(dto.getCurrentClassId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + dto.getCurrentClassId()));
+                student.setCurrentClass(physicalClass);
+            }
         }
 
         student.setStudentCode(dto.getStudentCode());
@@ -264,6 +267,14 @@ public class StudentServiceImpl implements StudentService {
         result.put("failedDetails", failedDetails);
 
         return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentDto getMyProfile(String userId) {
+        Student student = studentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản chưa được liên kết với hồ sơ học sinh!"));
+        return mapToDto(student);
     }
 
     private StudentDto mapToDto(Student student) {

@@ -13,4 +13,5 @@ public interface StudentService {
     Page<StudentDto> getAll(String keyword, Student.Status status, Integer admissionYear, Pageable pageable);
     void createAccountForExistingStudent(String studentId, String email);
     java.util.Map<String, Object> createAccountsBatch(java.util.List<String> studentIds);
+    StudentDto getMyProfile(String userId);
 }

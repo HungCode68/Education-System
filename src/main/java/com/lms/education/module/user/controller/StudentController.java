@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -102,5 +103,16 @@ public class StudentController {
 
         Map<String, Object> result = studentService.createAccountsBatch(studentIds);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/my-profile")
+    @PreAuthorize("hasAuthority('STUDENT_VIEW') or hasRole('STUDENT')")
+    public ResponseEntity<StudentDto> getMyProfile(Principal principal) {
+        // Lấy userId từ Token
+        com.lms.education.security.UserPrincipal userPrincipal =
+                (com.lms.education.security.UserPrincipal) ((org.springframework.security.core.Authentication) principal).getPrincipal();
+
+        String userId = userPrincipal.getId();
+        return ResponseEntity.ok(studentService.getMyProfile(userId));
     }
 }

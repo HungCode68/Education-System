@@ -30,4 +30,7 @@ public interface ClassStudentService {
     // oldClassId: Lớp 10A1 năm ngoái
     // newClassId: Lớp 11A1 năm nay
     void promoteStudents(String oldClassId, String newClassId);
+
+    // Tool đồng bộ dữ liệu: Cập nhật current_class_id cho bảng students dựa trên class_students
+    java.util.Map<String, Object> syncStudentCurrentClass();
 }
