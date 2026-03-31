@@ -152,7 +152,7 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
             if (material.getStatus() != LearningMaterial.MaterialStatus.published) {
                 throw new AccessDeniedException("Tài liệu này chưa được xuất bản");
             }
-        } else if (roleCode.equalsIgnoreCase("SUBJECT_TEACHER") || roleCode.equalsIgnoreCase("HOMEROOM_TEACHER")) {
+        } else if (roleCode.equalsIgnoreCase("SUBJECT_TEACHER") || roleCode.equalsIgnoreCase("HOMEROOM_TEACHER") || roleCode.equalsIgnoreCase("TEACHER_HEAD_DEPARTMENT")) {
             checkTeacherPermissionForClass(classId, username);
         } else {
             // Có thể mở rộng cho ADMIN nếu cần
