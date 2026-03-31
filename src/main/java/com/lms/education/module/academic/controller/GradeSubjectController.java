@@ -1,5 +1,6 @@
 package com.lms.education.module.academic.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.academic.dto.GradeSubjectDto;
 import com.lms.education.module.academic.service.GradeSubjectService;
 import com.lms.education.utils.PageResponse;
@@ -61,6 +62,7 @@ public class GradeSubjectController {
     // POST /api/v1/grade-subjects
     @PostMapping
     @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
+    @LogActivity(module = "GRADE_SUBJECT", action = "POST", targetType = "grade_subject", description = "Gán môn học vào khối lớp")
     public ResponseEntity<GradeSubjectDto> create(@Valid @RequestBody GradeSubjectDto dto) {
         log.info("REST request to create GradeSubject mapping: Grade {} - Subject {}", dto.getGradeId(), dto.getSubjectId());
         return ResponseEntity.status(HttpStatus.CREATED).body(gradeSubjectService.create(dto));
@@ -70,6 +72,7 @@ public class GradeSubjectController {
     // PUT /api/v1/grade-subjects/{id}
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
+    @LogActivity(module = "GRADE_SUBJECT", action = "UPDATE", targetType = "grade_subject", description = "Cập nhật môn học với khối lớp")
     public ResponseEntity<GradeSubjectDto> update(
             @PathVariable String id,
             @Valid @RequestBody GradeSubjectDto dto
@@ -82,6 +85,7 @@ public class GradeSubjectController {
     // DELETE /api/v1/grade-subjects/{id}
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CURRICULUM_CONFIG')")
+    @LogActivity(module = "GRADE_SUBJECT", action = "DELETE", targetType = "grade_subject", description = "Xóa cấu hình môn học với khối lớp")
     public ResponseEntity<Object> delete(@PathVariable String id) {
         log.info("REST request to delete GradeSubject ID: {}", id);
         gradeSubjectService.delete(id);

@@ -1,5 +1,6 @@
 package com.lms.education.module.user.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.user.dto.TeacherDto;
 import com.lms.education.module.user.service.TeacherService;
 import com.lms.education.security.UserPrincipal;
@@ -26,12 +27,14 @@ public class TeacherController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('USER_CREATE')")
+    @LogActivity(module = "TEACHER", action = "CREATE", targetType = "teacher", description = "Tạo mới dữ liệu giáo viên")
     public ResponseEntity<TeacherDto> create(@Valid @RequestBody TeacherDto dto) {
         return new ResponseEntity<>(teacherService.create(dto), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @LogActivity(module = "TEACHER", action = "UPDATE", targetType = "teacher", description = "Cập nhật thông tin giáo viên")
     public ResponseEntity<TeacherDto> update(@PathVariable String id, @Valid @RequestBody TeacherDto dto) {
         return ResponseEntity.ok(teacherService.update(id, dto));
     }
@@ -82,6 +85,7 @@ public class TeacherController {
     // POST /api/teachers/{id}/create-account
     @PostMapping("/{id}/create-account")
     @PreAuthorize("hasAuthority('USER_CREATE')")
+    @LogActivity(module = "TEACHER", action = "CREATE", targetType = "teacher", description = "Hệ thống cấp tài khoản mới cho giáo viên")
     public ResponseEntity<Map<String, String>> createAccountForTeacher(
             @PathVariable String id,
             @RequestBody(required = false) Map<String, String> request
@@ -95,6 +99,7 @@ public class TeacherController {
     // Body: { "teacherIds": ["id1", "id2", "id3"] }
     @PostMapping("/create-accounts-batch")
     @PreAuthorize("hasAuthority('USER_CREATE')")
+    @LogActivity(module = "TEACHER", action = "CREATE", targetType = "teacher", description = "Hệ thống cấp tài khoản mới cho giáo viên")
     public ResponseEntity<Map<String, Object>> createAccountsBatch(
             @RequestBody Map<String, java.util.List<String>> request) {
 

@@ -46,4 +46,10 @@ public interface GradeSubjectRepository extends JpaRepository<GradeSubject, Stri
             // "AND s.isActive = true " + // <--- Bỏ comment dòng này nếu muốn ẩn luôn khỏi trang Admin
             "ORDER BY g.level ASC, gs.displayOrder ASC")
     Page<GradeSubject> search(String gradeId, String keyword, Pageable pageable);
+
+    // Kiểm tra xem môn học đã được gán vào bất kỳ khối nào chưa
+    boolean existsBySubjectId(String subjectId);
+
+    // Kiểm tra xem Khối này đã được gán môn học nào chưa
+    boolean existsByGradeId(String gradeId);
 }

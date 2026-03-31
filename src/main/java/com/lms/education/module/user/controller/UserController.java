@@ -1,5 +1,6 @@
 package com.lms.education.module.user.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.user.dto.ChangeRoleRequest;
 import com.lms.education.module.user.service.UserService;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ public class UserController {
     // PATCH /api/v1/users/{userId}/role
     @PatchMapping("/{userId}/role")
     @PreAuthorize("hasAuthority('USER_UPDATE')") // Chỉ Admin mới được đổi role
+    @LogActivity(module = "USER", action = "UPDATE", targetType = "user", description = "Thay đổi vai trò cho tài khoản")
     public ResponseEntity<Map<String, String>> changeRole(
             @PathVariable String userId,
             @Valid @RequestBody ChangeRoleRequest request
@@ -63,6 +65,7 @@ public class UserController {
      */
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @LogActivity(module = "USER", action = "UPDATE", targetType = "user", description = "Cập nhật trạng thái tài khoản")
     public ResponseEntity<Map<String, String>> updateStatus(
             @PathVariable String id,
             @RequestBody java.util.Map<String, String> request) {
@@ -86,6 +89,7 @@ public class UserController {
     // PATCH /api/v1/users/{userId}/reset-password
     @PatchMapping("/{userId}/reset-password")
     @PreAuthorize("hasAuthority('USER_UPDATE') or hasRole('SYSTEM_ADMIN')")
+    @LogActivity(module = "USER", action = "UPDATE", targetType = "user", description = "Cài đặt lại mật khẩu mặc định cho tài khoản")
     public ResponseEntity<Map<String, String>> resetPassword(@PathVariable String userId) {
         userService.resetPassword(userId);
         return ResponseEntity.ok(Map.of("message", "Đã đặt lại mật khẩu về mã mặc định thành công!"));

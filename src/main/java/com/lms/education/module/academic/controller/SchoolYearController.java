@@ -1,4 +1,5 @@
 package com.lms.education.module.academic.controller;
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.academic.entity.SchoolYear.SchoolYearStatus;
 import com.lms.education.module.academic.dto.SchoolYearDto;
 import com.lms.education.module.academic.service.SchoolYearService;
@@ -58,6 +59,7 @@ public class SchoolYearController {
     //  Tạo mới
     @PostMapping
     @PreAuthorize("hasAuthority('ACADEMIC_YEAR_CREATE')")
+    @LogActivity(module = "SCHOOL_YEAR", action = "POST", targetType = "school_year", description = "Tạo mới năm học")
     public ResponseEntity<SchoolYearDto> create(@Valid @RequestBody SchoolYearDto dto) {
         log.info("REST request to create SchoolYear: {}", dto.getName());
         // Trả về 201 Created thay vì 200 OK
@@ -67,6 +69,7 @@ public class SchoolYearController {
     //  Cập nhật
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
+    @LogActivity(module = "SCHOOL_YEAR", action = "UPDATE", targetType = "school_year", description = "Cập nhật năm học")
     public ResponseEntity<SchoolYearDto> update(
             @PathVariable String id,
             @Valid @RequestBody SchoolYearDto dto
@@ -79,6 +82,7 @@ public class SchoolYearController {
     // API: DELETE /api/v1/school-years/{id}
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
+    @LogActivity(module = "SCHOOL_YEAR", action = "DELETE", targetType = "school_year", description = "Xóa năm học")
     public ResponseEntity<Object> deleteOne(@PathVariable String id) {
         log.info("REST request to delete SchoolYear ID: {}", id);
         // Bọc ID đơn lẻ vào List để gọi hàm chung của Service
@@ -91,6 +95,7 @@ public class SchoolYearController {
     // Body: ["id1", "id2", "id3"]
     @DeleteMapping
     @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
+    @LogActivity(module = "SCHOOL_YEAR", action = "DELETE", targetType = "school_year", description = "Xóa năm học")
     public ResponseEntity<Object> deleteMany(@RequestBody List<String> ids) {
         log.info("REST request to bulk delete SchoolYears: {}", ids);
         schoolYearService.delete(ids);
@@ -101,6 +106,7 @@ public class SchoolYearController {
     // API: PUT /api/v1/school-years/{id}/archive
     @PutMapping("/{id}/archive")
     @PreAuthorize("hasAuthority('ACADEMIC_YEAR_UPDATE')")
+    @LogActivity(module = "SCHOOL_YEAR", action = "UPDATE", targetType = "school_year", description = "Lưu trữ năm học")
     public ResponseEntity<Void> archive(@PathVariable String id) {
         log.info("REST request to archive SchoolYear ID: {}", id);
 

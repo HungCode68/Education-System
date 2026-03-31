@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 public class SchoolYearServiceImpl implements SchoolYearService {
 
     private final SchoolYearRepository schoolYearRepository;
+    private final com.lms.education.module.academic.repository.PhysicalClassRepository physicalClassRepository;
 
     @Override
     @Transactional // Đảm bảo tính toàn vẹn dữ liệu khi ghi
@@ -112,11 +113,10 @@ public class SchoolYearServiceImpl implements SchoolYearService {
                 throw new ResourceNotFoundException("Không tìm thấy năm học với ID: " + id);
             }
 
-            // Check ràng buộc: Năm học này đã có lớp chưa?
-//            if (physicalClassRepository.existsBySchoolYearId(id)) {
-//                log.warn("Chặn xóa - Năm học ID {} đang có dữ liệu lớp học", id);
-//                throw new OperationNotPermittedException("Không thể xóa năm học (ID: " + id + ") vì đã có lớp học. Vui lòng Archive thay vì xóa!");
-//            }
+            if (physicalClassRepository.existsBySchoolYearId(id)) {
+                log.warn("Chặn xóa - Năm học ID {} đang có dữ liệu lớp học", id);
+                throw new OperationNotPermittedException("Không thể xóa năm học này vì đã có lớp học được tạo bên trong. Vui lòng sử dụng tính năng 'Kết thúc (Archive)' thay vì xóa!");
+            }
         }
 
         //  Xóa sạch sau khi đã kiểm tra kỹ

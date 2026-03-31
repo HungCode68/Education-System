@@ -1,6 +1,7 @@
 package com.lms.education.module.academic.service.impl;
 
 import com.lms.education.exception.DuplicateResourceException;
+import com.lms.education.exception.OperationNotPermittedException;
 import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.academic.dto.GradeDto;
 import com.lms.education.module.academic.entity.Grade;
@@ -25,6 +26,8 @@ import java.util.Optional;
 public class GradeServiceImpl implements GradeService {
 
     private final GradeRepository gradeRepository;
+    private final com.lms.education.module.academic.repository.GradeSubjectRepository gradeSubjectRepository;
+    private final com.lms.education.module.academic.repository.PhysicalClassRepository physicalClassRepository;
 
     @Override
     @Transactional
@@ -95,8 +98,13 @@ public class GradeServiceImpl implements GradeService {
             throw new ResourceNotFoundException("Không tìm thấy khối với ID: " + id);
         }
 
-        // TODO: Cần kiểm tra ràng buộc. Nếu khối này đã có Lớp học (PhysicalClass) thì không được xóa.
-        // if (classRepository.existsByGradeId(id)) throw ...
+        if (gradeSubjectRepository.existsByGradeId(id)) {
+            throw new OperationNotPermittedException("Không thể xóa! Khối này đang được cấu hình môn học (GradeSubject). Vui lòng gỡ cấu hình môn học trước khi xóa.");
+        }
+
+        if (physicalClassRepository.existsByGradeId(id)) {
+            throw new OperationNotPermittedException("Không thể xóa! Đang có Lớp học (PhysicalClass) thuộc Khối này. Vui lòng xóa hoặc chuyển các lớp đó sang Khối khác trước.");
+        }
 
         gradeRepository.deleteById(id);
     }

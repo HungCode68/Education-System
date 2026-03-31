@@ -1,5 +1,6 @@
 package com.lms.education.module.user.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.user.dto.AssignPermissionDto;
 import com.lms.education.module.user.dto.RoleDto;
 import com.lms.education.module.user.entity.Role;
@@ -31,6 +32,7 @@ public class RoleController {
      */
     @PostMapping
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    @LogActivity(module = "ROLE", action = "CREATE", targetType = "role", description = "Tạo mới vai trò")
     public ResponseEntity<RoleDto> createRole(@Valid @RequestBody RoleDto dto) {
         log.info("REST request - Tạo mới vai trò: {}", dto.getCode());
         RoleDto createdRole = roleService.create(dto);

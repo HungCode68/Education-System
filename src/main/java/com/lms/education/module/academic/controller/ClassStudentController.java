@@ -1,5 +1,6 @@
 package com.lms.education.module.academic.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.academic.dto.ClassStudentDto;
 import com.lms.education.module.academic.dto.AutoDistributeRequest;
 import com.lms.education.module.academic.service.ClassStudentService;
@@ -41,6 +42,7 @@ public class ClassStudentController {
     // POST /api/v1/class-students
     @PostMapping
     @PreAuthorize("hasAuthority('CLASS_IMPORT_STUDENT')")
+    @LogActivity(module = "CLASS_STUDENT", action = "POST", targetType = "class_student", description = "Thêm thủ công học sinh vào lớp")
     public ResponseEntity<ClassStudentDto> addStudent(@Valid @RequestBody ClassStudentDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(classStudentService.addStudentToClass(dto));
     }
@@ -49,6 +51,7 @@ public class ClassStudentController {
     // DELETE /api/v1/class-students/{id}
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CLASS_UPDATE')")
+    @LogActivity(module = "CLASS_STUDENT", action = "DELETE", targetType = "class_student", description = "Gỡ thủ công học sinh khỏi lớp")
     public ResponseEntity<Map<String, String>> removeStudent(@PathVariable String id) {
         classStudentService.removeStudentFromClass(id);
         return ResponseEntity.ok(Map.of("message", "Đã xóa học sinh khỏi lớp thành công"));
@@ -58,6 +61,7 @@ public class ClassStudentController {
     // PATCH /api/v1/class-students/{id}/status?status=dropped
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAuthority('CLASS_UPDATE')")
+    @LogActivity(module = "CLASS_STUDENT", action = "UPDATE", targetType = "class_student", description = "Cập nhật trạng thái học sinh")
     public ResponseEntity<Map<String, String>> updateStatus(
             @PathVariable String id,
             @RequestParam String status // values: studying, transferred, dropped, completed
@@ -74,6 +78,7 @@ public class ClassStudentController {
     // POST /api/v1/class-students/auto-distribute
     @PostMapping("/auto-distribute")
     @PreAuthorize("hasAuthority('CLASS_IMPORT_STUDENT')")
+    @LogActivity(module = "CLASS_STUDENT", action = "POST", targetType = "class_student", description = "Hệ thống phân lớp tự động học sinh")
     public ResponseEntity<Map<String, String>> autoDistribute(@RequestBody AutoDistributeRequest request) {
         log.info("Request phân lớp tự động cho {} học sinh.", request.getStudentIds().size());
         Map<String, String> report = classStudentService.autoDistributeStudents(request);
@@ -84,6 +89,7 @@ public class ClassStudentController {
     // POST /api/v1/class-students/promote?oldClassId=...&newClassId=...
     @PostMapping("/promote")
     @PreAuthorize("hasAuthority('CLASS_PROMOTE')")
+    @LogActivity(module = "CLASS_STUDENT", action = "POST", targetType = "class_student", description = "Hệ thống lên lớp tự động cho học sinh")
     public ResponseEntity<Map<String, String>> promoteStudents(
             @RequestParam String oldClassId,
             @RequestParam String newClassId

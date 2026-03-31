@@ -1,5 +1,6 @@
 package com.lms.education.module.user.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.user.dto.StudentDto;
 import com.lms.education.module.user.entity.Student;
 import com.lms.education.module.user.service.StudentService;
@@ -27,12 +28,14 @@ public class StudentController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('USER_CREATE')") // đổi lại thành quyền user_create của admin hệ thống (có toàn quyền)
+    @LogActivity(module = "STUDENT", action = "CREATE", targetType = "student", description = "Tạo mới dữ liệu học sinh")
     public ResponseEntity<StudentDto> create(@Valid @RequestBody StudentDto dto) {
         return new ResponseEntity<>(studentService.create(dto), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('CLASS_UPDATE')")
+    @LogActivity(module = "STUDENT", action = "UPDATE", targetType = "student", description = "Cập nhật thông tin học sinh")
     public ResponseEntity<StudentDto> update(@PathVariable String id, @Valid @RequestBody StudentDto dto) {
         return ResponseEntity.ok(studentService.update(id, dto));
     }
@@ -79,6 +82,7 @@ public class StudentController {
     // Body: { "email": "hs002@school.edu.vn" }
     @PostMapping("/{id}/create-account")
     @PreAuthorize("hasAuthority('USER_CREATE')")
+    @LogActivity(module = "STUDENT", action = "CREATE", targetType = "student", description = "Hệ thống cấp tài khoản mới cho học sinh")
     public ResponseEntity<Map<String, String>> createAccountForStudent(
             @PathVariable String id,
             @RequestBody(required = false) Map<String, String> request
@@ -92,6 +96,7 @@ public class StudentController {
     // Body: { "studentIds": ["id1", "id2", "id3"] }
     @PostMapping("/create-accounts-batch")
     @PreAuthorize("hasAuthority('USER_CREATE')")
+    @LogActivity(module = "STUDENT", action = "CREATE", targetType = "student", description = "Hệ thống cấp tài khoản mới cho học sinh")
     public ResponseEntity<Map<String, Object>> createAccountsBatch(
             @RequestBody Map<String, java.util.List<String>> request) {
 

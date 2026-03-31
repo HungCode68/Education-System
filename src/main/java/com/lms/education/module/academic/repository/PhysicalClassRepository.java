@@ -48,4 +48,10 @@ public interface PhysicalClassRepository extends JpaRepository<PhysicalClass, St
 
     // Tìm lớp học dựa trên ID của Giáo viên chủ nhiệm
     Optional<PhysicalClass> findByHomeroomTeacher_Id(String teacherId);
+
+    // Kiểm tra xem Khối này đã có Lớp học thực tế nào chưa
+    boolean existsByGradeId(String gradeId);
+
+    // Kiểm tra xem Năm học này đã có Lớp học thực tế nào chưa
+    boolean existsBySchoolYearId(String schoolYearId);
 }

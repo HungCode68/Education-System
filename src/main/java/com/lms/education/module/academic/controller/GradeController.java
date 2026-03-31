@@ -1,5 +1,6 @@
 package com.lms.education.module.academic.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.academic.dto.GradeDto;
 import com.lms.education.module.academic.service.GradeService;
 import com.lms.education.utils.PageResponse;
@@ -58,6 +59,7 @@ public class GradeController {
     // POST /api/v1/grades
     @PostMapping
     @PreAuthorize("hasAuthority('GRADE_MANAGE')")
+    @LogActivity(module = "GRADE", action = "POST", targetType = "grade", description = "Tạo mới khối lớp")
     public ResponseEntity<GradeDto> create(@Valid @RequestBody GradeDto dto) {
         log.info("REST request to create Grade: {}", dto.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(gradeService.create(dto));
@@ -67,6 +69,7 @@ public class GradeController {
     // PUT /api/v1/grades/{id}
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('GRADE_MANAGE')")
+    @LogActivity(module = "GRADE", action = "UPDATE", targetType = "grade", description = "Cập nhật khối lớp")
     public ResponseEntity<GradeDto> update(
             @PathVariable String id,
             @Valid @RequestBody GradeDto dto
@@ -79,6 +82,7 @@ public class GradeController {
     // DELETE /api/v1/grades/{id}
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('GRADE_MANAGE')")
+    @LogActivity(module = "GRADE", action = "DELETE", targetType = "grade", description = "Xóa khối lớp")
     public ResponseEntity<Object> delete(@PathVariable String id) {
         log.info("REST request to delete Grade ID: {}", id);
         gradeService.delete(id);

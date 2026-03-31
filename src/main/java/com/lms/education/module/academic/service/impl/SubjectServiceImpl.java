@@ -25,6 +25,7 @@ import java.util.List;
 public class SubjectServiceImpl implements SubjectService {
 
     private final SubjectRepository subjectRepository;
+    private final com.lms.education.module.academic.repository.GradeSubjectRepository gradeSubjectRepository;
 
     @Override
     @Transactional
@@ -82,9 +83,9 @@ public class SubjectServiceImpl implements SubjectService {
             throw new ResourceNotFoundException("Không tìm thấy môn học với ID: " + id);
         }
 
-        // TODO: Sau này khi có bảng 'Course' (Lớp học phần) hoặc 'Grade' (Điểm),
-        // cần kiểm tra xem môn học này đã được sử dụng chưa.
-        // Ví dụ: if (courseRepository.existsBySubjectId(id)) { throw ... }
+        if (gradeSubjectRepository.existsBySubjectId(id)) {
+            throw new OperationNotPermittedException("Không thể xóa! Môn học này đang được gán cho một hoặc nhiều Khối lớp. Vui lòng gỡ cấu hình trước khi xóa.");
+        }
 
         subjectRepository.deleteById(id);
     }

@@ -1,5 +1,6 @@
 package com.lms.education.module.academic.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.academic.dto.SubjectDto;
 import com.lms.education.module.academic.service.SubjectService;
 import com.lms.education.utils.PageResponse;
@@ -58,6 +59,7 @@ public class SubjectController {
     // POST /api/v1/subjects
     @PostMapping
     @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
+    @LogActivity(module = "SUBJECT", action = "POST", targetType = "subject", description = "Tạo mới môn học")
     public ResponseEntity<SubjectDto> create(@Valid @RequestBody SubjectDto dto) {
         log.info("REST request to create Subject: {}", dto.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(subjectService.create(dto));
@@ -67,6 +69,7 @@ public class SubjectController {
     // PUT /api/v1/subjects/{id}
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
+    @LogActivity(module = "SUBJECT", action = "UPDATE", targetType = "subject", description = "Cập nhật môn học")
     public ResponseEntity<SubjectDto> update(
             @PathVariable String id,
             @Valid @RequestBody SubjectDto dto
@@ -79,6 +82,7 @@ public class SubjectController {
     // DELETE /api/v1/subjects/{id}
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('SUBJECT_MANAGE')")
+    @LogActivity(module = "SUBJECT", action = "DELETE", targetType = "subject", description = "Xóa môn học")
     public ResponseEntity<Object> delete(@PathVariable String id) {
         log.info("REST request to delete Subject ID: {}", id);
         subjectService.delete(id);

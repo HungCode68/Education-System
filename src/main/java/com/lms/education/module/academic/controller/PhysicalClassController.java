@@ -1,5 +1,6 @@
 package com.lms.education.module.academic.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.academic.dto.PhysicalClassDto;
 import com.lms.education.module.academic.service.PhysicalClassService;
 import com.lms.education.security.UserPrincipal;
@@ -63,6 +64,7 @@ public class PhysicalClassController {
     // POST /api/v1/physical-classes
     @PostMapping
     @PreAuthorize("hasAuthority('CLASS_CREATE')")
+    @LogActivity(module = "PHYSICAL_CLASS", action = "POST", targetType = "physical_class", description = "Tạo mới lớp học")
     public ResponseEntity<PhysicalClassDto> create(@Valid @RequestBody PhysicalClassDto dto) {
         log.info("REST request to create Class: {}", dto.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(physicalClassService.create(dto));
@@ -72,6 +74,7 @@ public class PhysicalClassController {
     // PUT /api/v1/physical-classes/{id}
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('CLASS_UPDATE')")
+    @LogActivity(module = "PHYSICAL_CLASS", action = "UPDATE", targetType = "physical_class", description = "Cập nhật lớp học")
     public ResponseEntity<PhysicalClassDto> update(
             @PathVariable String id,
             @Valid @RequestBody PhysicalClassDto dto
@@ -84,6 +87,7 @@ public class PhysicalClassController {
     // DELETE /api/v1/physical-classes/{id}
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CLASS_UPDATE')")
+    @LogActivity(module = "PHYSICAL_CLASS", action = "DELETE", targetType = "physical_class", description = "Xóa lớp học")
     public ResponseEntity<Object> delete(@PathVariable String id) {
         log.info("REST request to delete Class ID: {}", id);
         physicalClassService.delete(id);
