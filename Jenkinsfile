@@ -62,7 +62,7 @@ pipeline {
                     -e DB_PASSWORD='${SECRET_DB_PASS}' \
                     -e JWT_SECRET='${SECRET_JWT_KEY}' \
                     -e JWT_EXPIRATION=86400000 \
-                    -e MINIO_ENDPOINT=http://minio-server:9000 \
+                    -e MINIO_ENDPOINT=http://103.57.220.127:9000 \
                     -e MINIO_ACCESS_KEY='admin' \
                     -e MINIO_SECRET_KEY='${SECRET_MINIO_KEY}' \
                     -e MINIO_BUCKET_NAME=lms-storage \
