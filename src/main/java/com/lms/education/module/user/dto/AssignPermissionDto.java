@@ -2,6 +2,7 @@ package com.lms.education.module.user.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,10 +16,10 @@ import java.util.Set;
 @AllArgsConstructor
 public class AssignPermissionDto {
 
-    @NotBlank(message = "ID của Vai trò (Role) không được để trống")
-    private String roleId;
+    @NotNull(message = "ID của Vai trò (Role) không được để trống")
+    private Long roleId;
 
     // Danh sách các ID của Permission mà Frontend gửi lên (Tương ứng với các checkbox được tích)
     @NotEmpty(message = "Danh sách quyền không được để trống")
-    private Set<Integer> permissionIds;
+    private Set<Long> permissionIds;
 }

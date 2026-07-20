@@ -1,8 +1,8 @@
 package com.lms.education.module.user.controller;
 
 import com.lms.education.annotation.LogActivity;
+import com.lms.education.module.user.dto.StudentProvisionDto;
 import com.lms.education.module.user.dto.StudentDto;
-import com.lms.education.module.user.entity.Student;
 import com.lms.education.module.user.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,114 +10,102 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/students")
+@RequestMapping("/api/v1/students")
 @RequiredArgsConstructor
 public class StudentController {
 
     private final StudentService studentService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('USER_CREATE')") // đổi lại thành quyền user_create của admin hệ thống (có toàn quyền)
-    @LogActivity(module = "STUDENT", action = "CREATE", targetType = "student", description = "Tạo mới dữ liệu học sinh")
-    public ResponseEntity<StudentDto> create(@Valid @RequestBody StudentDto dto) {
-        return new ResponseEntity<>(studentService.create(dto), HttpStatus.CREATED);
+    @PreAuthorize("hasAuthority('STUDENT_CREATE')")
+    @LogActivity(module = "STUDENT", action = "CREATE", targetType = "student", description = "Tạo mới hồ sơ học viên")
+    public ResponseEntity<Map<String, Object>> createStudent(@Valid @RequestBody StudentDto dto) {
+        StudentDto createdStudent = studentService.create(dto);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Tạo hồ sơ học viên thành công!");
+        response.put("data", createdStudent);
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
-    @LogActivity(module = "STUDENT", action = "UPDATE", targetType = "student", description = "Cập nhật thông tin học sinh")
-    public ResponseEntity<StudentDto> update(@PathVariable String id, @Valid @RequestBody StudentDto dto) {
-        return ResponseEntity.ok(studentService.update(id, dto));
+    @PreAuthorize("hasAuthority('STUDENT_UPDATE')")
+    @LogActivity(module = "STUDENT", action = "UPDATE", targetType = "student", description = "Cập nhật thông tin học viên")
+    public ResponseEntity<Map<String, Object>> updateStudent(
+            @PathVariable Long id,
+            @Valid @RequestBody StudentDto dto) {
+
+        StudentDto updatedStudent = studentService.update(id, dto);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Cập nhật thông tin học viên thành công!");
+        response.put("data", updatedStudent);
+
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('CLASS_UPDATE')")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
+    @PreAuthorize("hasAuthority('STUDENT_DELETE')")
+    @LogActivity(module = "STUDENT", action = "DELETE", targetType = "student", description = "Xóa hồ sơ học viên")
+    public ResponseEntity<Map<String, String>> deleteStudent(@PathVariable Long id) {
         studentService.delete(id);
-        return ResponseEntity.noContent().build();
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Xóa hồ sơ học viên thành công!");
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('STUDENT_VIEW') or hasAuthority('CLASS_VIEW')")
-    public ResponseEntity<StudentDto> getById(@PathVariable String id) {
+    @PreAuthorize("hasAuthority('STUDENT_VIEW')")
+    public ResponseEntity<StudentDto> getStudentById(@PathVariable Long id) {
         return ResponseEntity.ok(studentService.getById(id));
     }
 
+    @GetMapping("/code/{studentCode}")
+    @PreAuthorize("hasAuthority('STUDENT_VIEW')")
+    public ResponseEntity<StudentDto> getStudentByCode(@PathVariable String studentCode) {
+        return ResponseEntity.ok(studentService.getByStudentCode(studentCode));
+    }
+
     @GetMapping
-    @PreAuthorize("hasAuthority('STUDENT_VIEW') or hasAuthority('CLASS_VIEW')")
-    public ResponseEntity<Page<StudentDto>> getAll(
+    @PreAuthorize("hasAuthority('STUDENT_VIEW')")
+    public ResponseEntity<Page<StudentDto>> getAllStudents(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Student.Status status,
-            @RequestParam(required = false) Integer admissionYear,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "fullName") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir
-    ) {
-        // Cấu hình sắp xếp (Sort)
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
         Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
-
-        // Cấu hình phân trang (Pageable)
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // Gọi Service
-        Page<StudentDto> students = studentService.getAll(keyword, status, admissionYear, pageable);
-
-        return ResponseEntity.ok(students);
+        return ResponseEntity.ok(studentService.getAllStudents(keyword, pageable));
     }
 
-    // POST /api/students/{id}/create-account
-    // Body: { "email": "hs002@school.edu.vn" }
-    @PostMapping("/{id}/create-account")
-    @PreAuthorize("hasAuthority('USER_CREATE')")
-    @LogActivity(module = "STUDENT", action = "CREATE", targetType = "student", description = "Hệ thống cấp tài khoản mới cho học sinh")
-    public ResponseEntity<Map<String, String>> createAccountForStudent(
-            @PathVariable String id,
-            @RequestBody(required = false) Map<String, String> request
-    ) {
-        String email = (request != null) ? request.get("email") : null;
-        studentService.createAccountForExistingStudent(id, email);
-        return ResponseEntity.ok(Map.of("message", "Đã cấp tài khoản thành công"));
-    }
+    @PostMapping("/provision-accounts")
+    @PreAuthorize("hasAuthority('STUDENT_PROVISION')")
+    @LogActivity(module = "STUDENT", action = "PROVISION", targetType = "user", description = "Cấp tài khoản hàng loạt cho học viên")
+    public ResponseEntity<Map<String, Object>> provisionAccounts(@Valid @RequestBody StudentProvisionDto dto) {
 
-    // POST /api/students/create-accounts-batch
-    // Body: { "studentIds": ["id1", "id2", "id3"] }
-    @PostMapping("/create-accounts-batch")
-    @PreAuthorize("hasAuthority('USER_CREATE')")
-    @LogActivity(module = "STUDENT", action = "CREATE", targetType = "student", description = "Hệ thống cấp tài khoản mới cho học sinh")
-    public ResponseEntity<Map<String, Object>> createAccountsBatch(
-            @RequestBody Map<String, java.util.List<String>> request) {
+        Map<String, Object> report = studentService.provisionAccounts(dto);
 
-        java.util.List<String> studentIds = request.get("studentIds");
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Tiến trình cấp tài khoản học viên đã hoàn tất!");
+        response.put("data", report);
 
-        if (studentIds == null || studentIds.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Danh sách ID học sinh không được để trống!"));
-        }
-
-        Map<String, Object> result = studentService.createAccountsBatch(studentIds);
-        return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/my-profile")
-    @PreAuthorize("hasAuthority('STUDENT_VIEW') or hasRole('STUDENT')")
-    public ResponseEntity<StudentDto> getMyProfile(Principal principal) {
-        // Lấy userId từ Token
-        com.lms.education.security.UserPrincipal userPrincipal =
-                (com.lms.education.security.UserPrincipal) ((org.springframework.security.core.Authentication) principal).getPrincipal();
-
-        String userId = userPrincipal.getId();
-        return ResponseEntity.ok(studentService.getMyProfile(userId));
+        return ResponseEntity.ok(response);
     }
 }

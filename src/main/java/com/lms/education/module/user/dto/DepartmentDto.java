@@ -1,7 +1,7 @@
 package com.lms.education.module.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.lms.education.module.user.entity.Department;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -12,24 +12,21 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class DepartmentDto {
 
-    private String id;
+    private Long id;
 
-    @NotBlank(message = "Tên phòng ban/tổ bộ môn không được để trống")
+    @NotBlank(message = "Mã phòng ban không được để trống")
+    @Size(max = 50, message = "Mã phòng ban không được vượt quá 50 ký tự")
+    private String code;
+
+    @NotBlank(message = "Tên phòng ban không được để trống")
     @Size(max = 100, message = "Tên phòng ban không được vượt quá 100 ký tự")
     private String name;
 
     private String description;
 
-    // Sẽ nhận giá trị 'academic' hoặc 'office'
-    private Department.DepartmentType type;
-
-    private Boolean isActive;
-
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime updatedAt;
 }

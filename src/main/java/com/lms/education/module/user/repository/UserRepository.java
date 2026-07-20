@@ -1,31 +1,21 @@
 package com.lms.education.module.user.repository;
 
 import com.lms.education.module.user.entity.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, String> {
-    Optional<User> findByEmail(String email);
-    boolean existsByEmail(String email);
-    Optional<User> findByRefreshToken(String refreshToken);
-    // Kiểm tra xem có người dùng nào đang sở hữu Role này không
-    boolean existsByRoleId(String roleId);
+public interface UserRepository extends JpaRepository<User, Long> {
 
-    // Tìm kiếm và lọc tài khoản
-    @Query("SELECT u FROM User u WHERE " +
-            "(:keyword IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:status IS NULL OR u.status = :status) " +
-            "AND (:roleCode IS NULL OR u.role.code = :roleCode)")
-    Page<User> searchAndFilter(
-            @Param("keyword") String keyword,
-            @Param("status") User.UserStatus status,
-            @Param("roleCode") String roleCode,
-            Pageable pageable);
+    // Tìm kiếm người dùng bằng email
+    Optional<User> findByEmail(String email);
+
+    // Kiểm tra sự tồn tại của email trong hệ thống
+    Boolean existsByEmail(String email);
+
+    // Tìm kiếm người dùng dựa trên Refresh Token
+    // Phục vụ cho logic gia hạn Access Token khi hết hạn
+    Optional<User> findByRefreshToken(String refreshToken);
 }

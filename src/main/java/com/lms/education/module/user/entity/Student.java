@@ -1,11 +1,10 @@
 package com.lms.education.module.user.entity;
 
-import com.lms.education.module.academic.entity.PhysicalClass;
+import com.lms.education.module.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,82 +16,34 @@ import java.time.LocalDateTime;
 @Builder
 public class Student {
 
-    public enum Gender {
-        male,
-        female,
-        other
-    }
-
-    public enum Status {
-        studying,
-        graduated,
-        transferred,
-        dropped_out,
-        reserved
-    }
-
     @Id
-    @UuidGenerator
-    @Column(length = 36, nullable = false, updatable = false)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
+    // Liên kết 1-1 với bảng Users
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true, unique = true)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", unique = true)
     private User user;
 
-    @Column(name = "student_code", length = 20, nullable = false, unique = true)
+    @Column(name = "student_code", nullable = false, unique = true, length = 50)
     private String studentCode;
 
-    @Column(name = "full_name", length = 100, nullable = false)
+    @Column(name = "full_name", nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String fullName;
 
-    @Column(name = "date_of_birth")
-    private LocalDate dateOfBirth;
-
-    // Map Enum Gender vào cột gender
-    @Enumerated(EnumType.STRING)
-    @Column(length = 10)
-    private Gender gender;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "current_class_id")
-    private PhysicalClass currentClass;
-
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String address;
-
-    @Column(name = "parent_phone", length = 20, nullable = false)
-    private String parentPhone;
-
-    @Column(name = "parent_name", length = 100, nullable = false)
+    @Column(name = "parent_name", length = 100, columnDefinition = "NVARCHAR(100)")
     private String parentName;
 
-    @Column(name = "admission_year")
-    private Integer admissionYear;
+    @Column(name = "parent_phone", length = 20)
+    private String parentPhone;
 
-    // Map Enum Status vào cột status
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    @Builder.Default
-    private Status status = Status.studying;
+    @Column(name = "target_score", length = 50)
+    private String targetScore;
 
+    @Column(nullable = false, length = 50)
+    private String status; // STUDYING, RESERVED, GRADUATED, DROPPED
+
+    @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = Status.studying;
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 }

@@ -1,117 +1,147 @@
 package com.lms.education.module.user.controller;
 
-import com.lms.education.module.user.dto.JwtResponse;
-import com.lms.education.module.user.dto.LoginRequest;
-import com.lms.education.module.user.dto.TokenRefreshRequest;
-import com.lms.education.module.user.dto.TokenRefreshResponse;
-import com.lms.education.module.user.entity.User;
-import com.lms.education.module.user.repository.UserRepository;
+import com.lms.education.annotation.LogActivity;
+import com.lms.education.module.user.dto.*;
+import com.lms.education.module.user.service.UserService;
 import com.lms.education.security.UserPrincipal;
 import com.lms.education.security.jwt.JwtUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.http.HttpStatus;
+
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
+    private final UserService userService;
 
-    @Value("${jwt.refreshExpirationMs}")
-    private Long refreshTokenDurationMs;
-
-    @PostMapping("/signin")
+    @PostMapping("/login")
+    @LogActivity(module = "AUTH", action = "LOGIN", targetType = "auth", description = "Đăng nhập và nhận Cookies")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        // Spring Security kiểm tra Email và Mật khẩu
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
-        UserPrincipal userDetails = (UserPrincipal) authentication.getPrincipal();
+        try {
+            // Gọi Spring Security xác thực
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
-        // Kiểm tra trạng thái tài khoản trước khi cấp Token
-        User user = userRepository.findById(userDetails.getId())
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với ID: " + userDetails.getId()));
+            // Xác thực thành công -> Lưu vào Context
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            UserPrincipal userDetails = (UserPrincipal) authentication.getPrincipal();
 
-        if (user.getStatus() != User.UserStatus.active) {
-            // Trả về lỗi 403 Forbidden nếu tài khoản không active
-            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
-                    .body(java.util.Map.of("message", "Đăng nhập thất bại! Tài khoản của bạn đang bị khóa hoặc vô hiệu hóa."));
+            // Tạo cặp Token mới
+            String newRefreshToken = UUID.randomUUID().toString();
+            userService.updateRefreshToken(userDetails.getId(), newRefreshToken, Instant.now().plusSeconds(7L * 24 * 60 * 60));
+
+            // Tạo Cookies
+            var jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+            var jwtRefreshCookie = jwtUtils.generateRefreshJwtCookie(newRefreshToken);
+
+            // Trả về kết quả
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
+                    .body(Map.of(
+                            "message", "Đăng nhập thành công!",
+                            "fullName", userDetails.getFullName(),
+                            "roles", userDetails.getRoleDescriptions(),
+                            "permissions", userDetails.getPermissionList()
+                    ));
+
+        } catch (DisabledException e) {
+            // Trạng thái != ACTIVE
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Tài khoản của bạn chưa được kích hoạt hoặc đã bị vô hiệu hóa."));
+
+        } catch (LockedException e) {
+            // Trạng thái == LOCKED
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."));
+
+        } catch (BadCredentialsException e) {
+            // Sai email hoặc mật khẩu
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Email hoặc mật khẩu không chính xác."));
+        } catch (Exception e) {
+            // Lỗi hệ thống khác
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Đã xảy ra lỗi trong quá trình đăng nhập."));
         }
-
-        // Nếu mọi thứ hợp lệ -> Tiếp tục cấp Token như cũ
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(auth -> auth.startsWith("ROLE_"))
-                .map(auth -> auth.replace("ROLE_", ""))
-                .collect(Collectors.toList());
-
-        List<String> permissions = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(auth -> !auth.startsWith("ROLE_"))
-                .collect(Collectors.toList());
-
-        // Generate Refresh Token (JWT format)
-        String refreshToken = jwtUtils.generateRefreshToken(userDetails.getUsername());
-
-        // Save Refresh Token & Update Last Login to DB
-        user.setRefreshToken(refreshToken);
-        user.setRefreshTokenExpiry(LocalDateTime.now().plusNanos(refreshTokenDurationMs * 1000000)); // ms to nanos
-        user.setLastLogin(LocalDateTime.now());
-        userRepository.save(user);
-
-        return ResponseEntity.ok(new JwtResponse(
-                jwt,
-                refreshToken,
-                userDetails.getId(),
-                userDetails.getEmail(),
-                roles,
-                permissions));
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshtoken(@Valid @RequestBody TokenRefreshRequest request) {
-        String requestRefreshToken = request.getRefreshToken();
+    @LogActivity(module = "AUTH", action = "REFRESH", targetType = "token", description = "Xoay vòng Refresh Token")
+    public ResponseEntity<?> refreshToken(HttpServletRequest request) {
+        // Lấy refresh token từ cookie
+        String refreshToken = jwtUtils.getJwtRefreshFromCookies(request);
 
-        // Find user by refresh token (Needs a method in repo or just search all - suboptimal but works for now, or add method)
-        // Better: Add findByRefreshToken to UserRepository
-        // For now, let's assume we can find it. I'll update UserRepository first.
-        return userRepository.findByRefreshToken(requestRefreshToken)
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Refresh Token không tìm thấy trong Cookie!"));
+        }
+
+        return userService.findByRefreshToken(refreshToken)
                 .map(user -> {
-                    if (user.getRefreshTokenExpiry().isBefore(LocalDateTime.now())) {
-                        throw new RuntimeException("Refresh token was expired. Please make a new signin request");
+                    // Kiểm tra hết hạn & Trạng thái tài khoản
+                    if (user.getExpiryDate().isBefore(Instant.now())) {
+                        userService.deleteRefreshToken(refreshToken);
+                        throw new RuntimeException("Phiên làm việc hết hạn. Vùi lòng đăng nhập lại.");
                     }
-                    
-                    String token = jwtUtils.generateTokenFromUsername(user.getEmail());
-                    // Rotate Refresh Token? (Optional, but good for security. Keeping same for now or generating new?)
-                    // If we want to rotate, we should generate new one here too.
-                    // For now, keep existing behavior (return new access token, keep old refresh token)
-                    return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken));
+                    if (!"ACTIVE".equals(user.getStatus())) {
+                        throw new RuntimeException("Tài khoản đã bị khóa.");
+                    }
+
+                    // Tạo Refresh Token MỚI
+                    String newRefreshToken = UUID.randomUUID().toString();
+                    userService.updateRefreshToken(user.getId(), newRefreshToken, Instant.now().plusSeconds(7L * 24 * 60 * 60));
+
+                    // Tạo Cookies MỚI
+                    var userPrincipal = UserPrincipal.create(user);
+                    var newJwtCookie = jwtUtils.generateJwtCookie(userPrincipal);
+                    var newJwtRefreshCookie = jwtUtils.generateRefreshJwtCookie(newRefreshToken);
+
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.SET_COOKIE, newJwtCookie.toString())
+                            .header(HttpHeaders.SET_COOKIE, newJwtRefreshCookie.toString())
+                            .body(Map.of("message", "Làm mới phiên thành công!"));
                 })
-                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+                .orElseThrow(() -> new RuntimeException("Token không hợp lệ hoặc đã bị sử dụng!"));
+    }
+
+    @PostMapping("/logout")
+    @LogActivity(module = "AUTH", action = "LOGOUT", targetType = "auth", description = "Đăng xuất và xóa Cookies")
+    public ResponseEntity<?> logoutUser(HttpServletRequest request) {
+        String refreshToken = jwtUtils.getJwtRefreshFromCookies(request);
+
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            userService.deleteRefreshToken(refreshToken);
+        }
+
+        // Xóa cookies ở trình duyệt
+        var cleanJwtCookie = jwtUtils.getCleanJwtCookie();
+        var cleanRefreshCookie = jwtUtils.getCleanJwtRefreshCookie();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cleanJwtCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, cleanRefreshCookie.toString())
+                .body(Map.of("message", "Đăng xuất thành công và đã hủy phiên làm việc!"));
     }
 }

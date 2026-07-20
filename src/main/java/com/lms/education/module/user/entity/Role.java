@@ -3,7 +3,6 @@ package com.lms.education.module.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -11,47 +10,32 @@ import java.util.Set;
 
 @Entity
 @Table(name = "roles")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Role {
 
-    public enum RoleStatus {
-        active,
-        inactive
-    }
-
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(length = 36)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String code; // Ví dụ: ROLE_ADMIN, ROLE_USER
+    @Column(unique = true, nullable = false, length = 50)
+    private String name; // Lưu trữ ROLE_ADMIN, ROLE_TEACHER...
 
-    @Column(nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
-    private String name; // Ví dụ: Quản trị hệ thống, Khách hàng
-
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'active'")
-    @Builder.Default
-    private RoleStatus status = RoleStatus.active;
+    @Column(columnDefinition = "NVARCHAR(255)")
+    private String description;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @ManyToMany(fetch = FetchType.EAGER) // EAGER để khi lấy Role thì lấy luôn Permission
+    // Quan hệ với Permission thông qua bảng trung gian
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
-            name = "role_permission",
-            // 'role_id' trỏ về bảng Roles (đang là UUID String)
+            name = "role_permissions", // Tên bảng trung gian
             joinColumns = @JoinColumn(name = "role_id"),
-            // 'permission_id' trỏ về bảng Permissions (đang là Integer)
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
     @Builder.Default

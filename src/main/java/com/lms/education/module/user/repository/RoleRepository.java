@@ -10,20 +10,18 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface RoleRepository extends JpaRepository<Role, String> {
-    // Tìm Role dựa theo mã code (Ví dụ: STUDENT)
-    Optional<Role> findByCode(String code);
+public interface RoleRepository extends JpaRepository<Role, Long> {
 
-    // Kiểm tra mã vai trò đã tồn tại chưa (Dùng khi Thêm mới/Cập nhật để tránh lỗi UNIQUE của Database)
-    boolean existsByCode(String code);
+    // Tìm Role dựa theo tên (Ví dụ: ROLE_ADMIN)
+    Optional<Role> findByName(String name);
 
-    // Lấy danh sách Role theo trạng thái (Dùng cho Frontend khi có bộ lọc Trạng thái: active/inactive)
-    Page<Role> findByStatus(Role.RoleStatus status, Pageable pageable);
+    // Kiểm tra tên vai trò đã tồn tại chưa
+    boolean existsByName(String name);
 
-    // Tìm kiếm Role theo tên hoặc mã code (Hỗ trợ thanh Search trên giao diện quản lý Role)
-    Page<Role> findByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(String name, String code, Pageable pageable);
+    // Tìm kiếm Role theo tên (Hỗ trợ thanh Search trên giao diện)
+    Page<Role> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     // Kiểm tra xem có Role nào đang được gán Permission này không
     @Query("SELECT COUNT(r) > 0 FROM Role r JOIN r.permissions p WHERE p.id = :permissionId")
-    boolean isPermissionAssigned(@org.springframework.data.repository.query.Param("permissionId") Integer permissionId);
+    boolean isPermissionAssigned(Long permissionId);
 }

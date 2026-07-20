@@ -1,13 +1,16 @@
 package com.lms.education.module.user.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class LoginRequest {
-    @NotBlank
+
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "Định dạng email không hợp lệ")
     private String email;
 
-    @NotBlank
+    @NotBlank(message = "Mật khẩu không được để trống")
     private String password;
 }

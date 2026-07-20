@@ -1,49 +1,44 @@
 package com.lms.education.module.user.dto;
 
-import com.lms.education.module.user.entity.Student;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class StudentDto {
-    private String id;
+
+    private Long id;
+
+    private Long userId;
+    private String userEmail;
 
     private String studentCode;
 
-    @NotBlank(message = "Full name is required")
+    @NotBlank(message = "Họ và tên học viên không được để trống")
+    @Size(max = 100, message = "Họ và tên không vượt quá 100 ký tự")
     private String fullName;
 
-    @NotNull(message = "Date of birth is required")
-    private LocalDate dateOfBirth;
-
-    private Student.Gender gender;
-
-    private String currentClassId;
-
-    @NotBlank(message = "Address is required")
-    private String address;
-
-    @NotBlank(message = "Parent phone is required")
-    private String parentPhone;
-
-    @NotBlank(message = "Parent name is required")
+    @Size(max = 100, message = "Tên phụ huynh không vượt quá 100 ký tự")
     private String parentName;
 
-    private Integer admissionYear;
+    @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Số điện thoại phụ huynh không hợp lệ")
+    private String parentPhone;
 
-    private Student.Status status;
+    @Size(max = 50, message = "Mục tiêu điểm số không vượt quá 50 ký tự")
+    private String targetScore;
 
-    private String email;
+    // Trạng thái học viên (STUDYING, RESERVED, GRADUATED, DROPPED)
+    private String status;
 
-    // Để hiển thị ra cho Frontend biết user ID liên kết là gì
-    private String userId;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createdAt;
 }

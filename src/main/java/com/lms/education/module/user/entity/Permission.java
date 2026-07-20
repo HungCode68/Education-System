@@ -2,6 +2,9 @@ package com.lms.education.module.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "permissions")
@@ -13,32 +16,15 @@ public class Permission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    @Column(nullable = false, length = 120)
-    private String code;
-
-    public enum PermissionScope {
-        SYSTEM,
-        ACADEMIC_YEAR,
-        GRADE,
-        CLASS,
-        USER,
-        SUBJECT,
-        ASSIGNMENT,
-        MATERIAL,
-        GRADEBOOK,
-        REPORT,
-        DEPARTMENT
-    }
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PermissionScope scope;
-
-    @Column(length = 120, columnDefinition = "NVARCHAR(120)")
+    @Column(nullable = false, unique = true, length = 100, columnDefinition = "NVARCHAR(100)")
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "NVARCHAR(255)")
     private String description;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 }

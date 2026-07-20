@@ -1,29 +1,26 @@
-package com.lms.education.module.user.service;
+package com.lms.education.module.department.service;
 
 import com.lms.education.module.user.dto.DepartmentDto;
-import com.lms.education.module.user.entity.Department;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
-
 public interface DepartmentService {
 
+    // Tạo mới một phòng ban/khoa
     DepartmentDto create(DepartmentDto dto);
 
-    DepartmentDto update(String id, DepartmentDto dto);
+    // Cập nhật thông tin phòng ban/khoa
+    DepartmentDto update(Long id, DepartmentDto dto);
 
-    // Dùng xóa mềm (Chuyển isActive = false)
-    void delete(String id);
+    // Xóa phòng ban/khoa theo ID
+    void delete(Long id);
 
-    DepartmentDto getById(String id);
+    // Lấy chi tiết phòng ban/khoa theo ID
+    DepartmentDto getById(Long id);
 
-    // Lấy danh sách có phân trang và lọc cho Bảng quản trị
-    Page<DepartmentDto> getAll(String keyword, Department.DepartmentType type, Boolean isActive, Pageable pageable);
+    // Lấy chi tiết phòng ban/khoa theo mã Code
+    DepartmentDto getByCode(String code);
 
-    // Lấy toàn bộ phòng ban đang hoạt động (Dùng cho Dropdown chung)
-    List<DepartmentDto> getAllActive();
-
-    // Lấy phòng ban đang hoạt động theo loại (VD: Chỉ lấy Tổ chuyên môn 'academic')
-    List<DepartmentDto> getActiveByType(Department.DepartmentType type);
+    // Lấy danh sách phòng ban có hỗ trợ tìm kiếm từ khóa và phân trang
+    Page<DepartmentDto> getAllDepartments(String keyword, Pageable pageable);
 }

@@ -5,61 +5,57 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    @Autowired
-    private JwtUtils jwtUtils;
 
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
-
+    private final JwtUtils jwtUtils;
+    private final CustomUserDetailsService userDetailsService;
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            String jwt = parseJwt(request);
+            // Trích xuất JWT từ Cookie (thay vì Authorization Header)
+            String jwt = jwtUtils.getJwtFromCookies(request);
+
+            // Kiểm tra tính hợp lệ của Token
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                // Lấy Email từ Token (Email đóng vai trò là định danh chính)
+                String email = jwtUtils.getEmailFromJwtToken(jwt);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                // Load thông tin người dùng từ Database
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+                // Kiểm tra status thông qua các hàm isEnabled, isAccountNonLocked
+                if (userDetails.isEnabled() && userDetails.isAccountNonLocked()) {
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    // Thiết lập phiên làm việc vào Security Context
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e.getMessage());
+            logger.error("Không thể thiết lập xác thực người dùng: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private String parseJwt(HttpServletRequest request) {
-        String headerAuth = request.getHeader("Authorization");
-
-        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
-        }
-
-        return null;
     }
 }

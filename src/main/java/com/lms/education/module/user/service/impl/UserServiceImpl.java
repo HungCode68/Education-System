@@ -1,120 +1,106 @@
 package com.lms.education.module.user.service.impl;
 
-import com.lms.education.exception.ResourceNotFoundException;
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.user.dto.UserDto;
-import com.lms.education.module.user.entity.Role;
-import com.lms.education.module.user.entity.Student;
-import com.lms.education.module.user.entity.Teacher;
 import com.lms.education.module.user.entity.User;
-import com.lms.education.module.user.repository.RoleRepository;
-import com.lms.education.module.user.repository.StudentRepository;
-import com.lms.education.module.user.repository.TeacherRepository;
 import com.lms.education.module.user.repository.UserRepository;
 import com.lms.education.module.user.service.UserService;
+import com.lms.education.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final StudentRepository studentRepository;
-    private final TeacherRepository teacherRepository;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
 
     @Override
     @Transactional
-    public void changeUserRole(String userId, String roleCode) {
-        // Tìm User
+    public void updateRefreshToken(Long userId, String refreshToken, Instant expiryDate) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản (User ID: " + userId + ")"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId));
 
-        // Tìm Role mới trong Database
-        Role newRole = roleRepository.findByCode(roleCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy quyền có mã: " + roleCode));
-
-        // Cập nhật Role cho User
-        user.setRole(newRole);
+        user.setRefreshToken(refreshToken);
+        user.setExpiryDate(expiryDate);
         userRepository.save(user);
-
-        log.info("Đã thay đổi quyền của User {} thành {}", user.getEmail(), roleCode);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public UserDto getUserById(String id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + id));
-        return mapToDto(user);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<UserDto> getAllUsers(String keyword, User.UserStatus status, String roleCode, Pageable pageable) {
-        return userRepository.searchAndFilter(keyword, status, roleCode, pageable)
-                .map(this::mapToDto);
+    public Optional<User> findByRefreshToken(String token) {
+        return userRepository.findByRefreshToken(token);
     }
 
     @Override
     @Transactional
-    public void updateUserStatus(String id, User.UserStatus status) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + id));
+    public void deleteRefreshToken(String token) {
+        userRepository.findByRefreshToken(token).ifPresent(user -> {
+            user.setRefreshToken(null);
+            user.setExpiryDate(null);
+            userRepository.save(user);
+        });
+    }
+
+    @Override
+    @Transactional
+    public UserDto createUser(UserDto userDto) {
+        User user = User.builder()
+                .email(userDto.getEmail())
+                .password(passwordEncoder.encode("123456")) // Mật khẩu mặc định khi trung tâm cấp tài khoản
+                .fullName(userDto.getFullName())
+                .status("ACTIVE")
+                .build();
+
+        User savedUser = userRepository.save(user);
+        return mapToDto(savedUser);
+    }
+
+
+    @Override
+    @Transactional
+    public void updateUserStatus(Long userId, String status) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId));
 
         user.setStatus(status);
         userRepository.save(user);
+
+        // Nếu khóa tài khoản, xóa luôn Refresh Token để buộc logout
+        if ("LOCKED".equals(status) || "INACTIVE".equals(status)) {
+            user.setRefreshToken(null);
+            user.setExpiryDate(null);
+        }
     }
 
     @Override
-    @Transactional
-    public void resetPassword(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản với ID: " + userId));
-
-        String defaultPassword = null;
-
-        // Thử tìm xem tài khoản này có phải của Học sinh không
-        Optional<Student> studentOpt = studentRepository.findByUserId(userId);
-        if (studentOpt.isPresent()) {
-            defaultPassword = studentOpt.get().getStudentCode(); // Lấy mã HS làm mật khẩu
-        } else {
-            // Nếu không phải HS, thử tìm xem có phải của Giáo viên không
-            Optional<Teacher> teacherOpt = teacherRepository.findByUserId(userId);
-            if (teacherOpt.isPresent()) {
-                defaultPassword = teacherOpt.get().getTeacherCode(); // Lấy mã GV làm mật khẩu
-            }
-        }
-
-        // Nếu tìm thấy mã (HS hoặc GV), tiến hành mã hóa và lưu lại
-        if (defaultPassword != null) {
-            user.setPassword(passwordEncoder.encode(defaultPassword));
-            userRepository.save(user);
-            log.info("Đã reset mật khẩu của tài khoản ID: {} về mã mặc định ({})", userId, defaultPassword);
-        } else {
-            throw new RuntimeException("Không thể reset: Tài khoản này không được liên kết với hồ sơ Học sinh hay Giáo viên nào.");
-        }
+    public UserDto getUserById(Long id) {
+        return userRepository.findById(id)
+                .map(this::mapToDto)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
-    // Hàm Helper để map Entity sang DTO
+    // Helper method để map Entity sang DTO
     private UserDto mapToDto(User user) {
         return UserDto.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .fullName(user.getFullName())
                 .status(user.getStatus())
-                .roleId(user.getRole() != null ? user.getRole().getId() : null)
-                .roleCode(user.getRole() != null ? user.getRole().getCode() : null)
-                .roleName(user.getRole() != null ? user.getRole().getName() : null)
-                .createdAt(user.getCreatedAt())
-                .lastLogin(user.getLastLogin())
+                .roles(user.getRoles().stream()
+                        .map(role -> role.getName())
+                        .collect(Collectors.toSet()))
                 .build();
     }
 }

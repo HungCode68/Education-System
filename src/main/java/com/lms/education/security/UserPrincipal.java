@@ -3,31 +3,77 @@ package com.lms.education.security;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lms.education.module.user.entity.User;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
+@Builder
 public class UserPrincipal implements UserDetails {
-    private String id;
+
+    private Long id;
+
     private String email;
+
     @JsonIgnore
     private String password;
+
+    private String fullName;
+
+    private String status;
+
+    private List<String> roleDescriptions;
+
+    private List<String> permissionList;
+
     private Collection<? extends GrantedAuthority> authorities;
 
-    public static UserPrincipal build(User user, List<GrantedAuthority> authorities) {
-        return new UserPrincipal(
-                user.getId(),
-                user.getEmail(),
-                user.getPassword(),
-                authorities // Nhận danh sách quyền được truyền trực tiếp từ CustomUserDetailsService
-        );
+    public static UserPrincipal create(User user) {
+        Set<GrantedAuthority> authoritySet = new HashSet<>();
+        List<String> roleDescs = new ArrayList<>();
+
+        Set<String> exactPermissions = new HashSet<>();
+
+        if (user.getRoles() != null) {
+            user.getRoles().forEach(role -> {
+                // Thêm Role cho Spring Security
+                authoritySet.add(new SimpleGrantedAuthority(role.getName()));
+
+                // Lấy mô tả Role cho Frontend
+                if (role.getDescription() != null && !role.getDescription().trim().isEmpty()) {
+                    roleDescs.add(role.getDescription());
+                } else {
+                    roleDescs.add(role.getName().replace("ROLE_", ""));
+                }
+
+                if (role.getPermissions() != null) {
+                    role.getPermissions().forEach(permission -> {
+                        // Thêm Permission cho Spring Security
+                        authoritySet.add(new SimpleGrantedAuthority(permission.getName()));
+
+                        // LƯU CHÍNH XÁC TÊN PERMISSION VÀO SET
+                        exactPermissions.add(permission.getName());
+                    });
+                }
+            });
+        }
+
+        return UserPrincipal.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .password(user.getPassword())
+                .fullName(user.getFullName())
+                .status(user.getStatus())
+                .roleDescriptions(roleDescs)
+                .permissionList(new ArrayList<>(exactPermissions))
+                .authorities(new ArrayList<>(authoritySet))
+                .build();
     }
 
     @Override
@@ -52,7 +98,8 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        // Tài khoản không bị khóa nếu status không phải là 'LOCKED'
+        return !"LOCKED".equalsIgnoreCase(status);
     }
 
     @Override
@@ -62,6 +109,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        // Tài khoản chỉ hoạt động nếu status là 'ACTIVE'
+        return "ACTIVE".equalsIgnoreCase(status);
     }
 }

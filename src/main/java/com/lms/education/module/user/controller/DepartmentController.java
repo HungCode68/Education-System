@@ -2,11 +2,9 @@ package com.lms.education.module.user.controller;
 
 import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.user.dto.DepartmentDto;
-import com.lms.education.module.user.entity.Department;
-import com.lms.education.module.user.service.DepartmentService;
+import com.lms.education.module.department.service.DepartmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,97 +14,83 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/departments")
+@RequestMapping("/api/v1/departments")
 @RequiredArgsConstructor
-@Slf4j
 public class DepartmentController {
 
     private final DepartmentService departmentService;
 
-    /**
-     * TẠO MỚI PHÒNG BAN / TỔ BỘ MÔN
-     */
     @PostMapping
-    @PreAuthorize("hasAuthority('SYSTEM_UPDATE') or hasAuthority('DEPARTMENT_CREATE')")
-    @LogActivity(module = "DEPARTMENT", action = "CREATE", targetType = "departments", description = "Tạo mới phòng ban/tổ bộ môn")
-    public ResponseEntity<DepartmentDto> create(@Valid @RequestBody DepartmentDto dto) {
-        log.info("REST request - Tạo mới phòng ban: {}", dto.getName());
-        return new ResponseEntity<>(departmentService.create(dto), HttpStatus.CREATED);
+    @PreAuthorize("hasAuthority('DEPARTMENT_CREATE')")
+    @LogActivity(module = "DEPARTMENT", action = "CREATE", targetType = "department", description = "Tạo mới phòng ban/khoa hệ thống")
+    public ResponseEntity<Map<String, Object>> createDepartment(@Valid @RequestBody DepartmentDto dto) {
+        DepartmentDto createdDepartment = departmentService.create(dto);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Tạo phòng ban/khoa thành công!");
+        response.put("data", createdDepartment);
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    /**
-     * CẬP NHẬT PHÒNG BAN
-     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('SYSTEM_UPDATE') or hasAuthority('DEPARTMENT_UPDATE')")
-    public ResponseEntity<DepartmentDto> update(
-            @PathVariable String id,
+    @PreAuthorize("hasAuthority('DEPARTMENT_UPDATE')")
+    @LogActivity(module = "DEPARTMENT", action = "UPDATE", targetType = "department", description = "Cập nhật thông tin phòng ban/khoa")
+    public ResponseEntity<Map<String, Object>> updateDepartment(
+            @PathVariable Long id,
             @Valid @RequestBody DepartmentDto dto) {
-        log.info("REST request - Cập nhật phòng ban ID: {}", id);
-        return ResponseEntity.ok(departmentService.update(id, dto));
+
+        DepartmentDto updatedDepartment = departmentService.update(id, dto);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Cập nhật thông tin phòng ban/khoa thành công!");
+        response.put("data", updatedDepartment);
+
+        return ResponseEntity.ok(response);
     }
 
-    /**
-     * XÓA PHÒNG BAN (Tự động nhận diện Xóa cứng hoặc Xóa mềm)
-     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('SYSTEM_UPDATE') or hasAuthority('DEPARTMENT_DELETE')")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
-        log.info("REST request - Xóa phòng ban ID: {}", id);
+    @PreAuthorize("hasAuthority('DEPARTMENT_DELETE')")
+    @LogActivity(module = "DEPARTMENT", action = "DELETE", targetType = "department", description = "Xóa phòng ban/khoa khỏi hệ thống")
+    public ResponseEntity<Map<String, String>> deleteDepartment(@PathVariable Long id) {
         departmentService.delete(id);
-        return ResponseEntity.noContent().build();
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Xóa phòng ban/khoa thành công!");
+
+        return ResponseEntity.ok(response);
     }
 
-    /**
-     * LẤY CHI TIẾT 1 PHÒNG BAN
-     */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('USER_VIEW') or hasAuthority('DEPARTMENT_VIEW')")
-    public ResponseEntity<DepartmentDto> getById(@PathVariable String id) {
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
+    public ResponseEntity<DepartmentDto> getDepartmentById(@PathVariable Long id) {
         return ResponseEntity.ok(departmentService.getById(id));
     }
 
-    /**
-     * LẤY DANH SÁCH CÓ PHÂN TRANG VÀ LỌC (Dùng cho Bảng quản trị)
-     */
+    @GetMapping("/code/{code}")
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
+    public ResponseEntity<DepartmentDto> getDepartmentByCode(@PathVariable String code) {
+        return ResponseEntity.ok(departmentService.getByCode(code));
+    }
+
     @GetMapping
-    @PreAuthorize("hasAuthority('USER_VIEW') or hasAuthority('DEPARTMENT_VIEW')")
-    public ResponseEntity<Page<DepartmentDto>> getAll(
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
+    public ResponseEntity<Page<DepartmentDto>> getAllDepartments(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Department.DepartmentType type,
-            @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "name") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir
-    ) {
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
         Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
-
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<DepartmentDto> departments = departmentService.getAll(keyword, type, isActive, pageable);
 
-        return ResponseEntity.ok(departments);
-    }
-
-    /**
-     * LẤY TẤT CẢ PHÒNG BAN ĐANG HOẠT ĐỘNG (Dùng cho Dropdown chung)
-     */
-    @GetMapping("/active")
-    public ResponseEntity<List<DepartmentDto>> getAllActive() {
-        return ResponseEntity.ok(departmentService.getAllActive());
-    }
-
-    /**
-     * LẤY PHÒNG BAN ĐANG HOẠT ĐỘNG THEO LOẠI (Dùng cho Dropdown phân loại)
-     * VD: /api/departments/active/type/academic -> Lấy các Tổ bộ môn để phân công dạy
-     */
-    @GetMapping("/active/type/{type}")
-    public ResponseEntity<List<DepartmentDto>> getActiveByType(@PathVariable Department.DepartmentType type) {
-        return ResponseEntity.ok(departmentService.getActiveByType(type));
+        return ResponseEntity.ok(departmentService.getAllDepartments(keyword, pageable));
     }
 }

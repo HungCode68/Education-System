@@ -1,28 +1,29 @@
 package com.lms.education.module.user.dto;
 
-import com.lms.education.module.user.entity.Permission;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PermissionDto {
 
-    private Integer id;
+    private Long id;
 
-    @NotBlank(message = "Mã quyền (code) không được để trống")
-    @Size(max = 120, message = "Mã quyền không được vượt quá 120 ký tự")
-    private String code;
-
-    @NotNull(message = "Nhóm phạm vi (scope) không được để trống")
-    private Permission.PermissionScope scope;
-
-    @Size(max = 120, message = "Tên quyền không được vượt quá 120 ký tự")
+    @NotBlank(message = "Tên quyền không được để trống")
+    @Size(max = 100, message = "Tên quyền không được vượt quá 100 ký tự")
     private String name;
 
+    @Size(max = 255, message = "Mô tả không được vượt quá 255 ký tự")
     private String description;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createdAt;
 }

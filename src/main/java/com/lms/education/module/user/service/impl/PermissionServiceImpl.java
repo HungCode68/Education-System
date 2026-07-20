@@ -14,9 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,53 +25,45 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     @Transactional
     public PermissionDto create(PermissionDto dto) {
-        String codeUpperCase = dto.getCode().toUpperCase();
+        String nameUpperCase = dto.getName().toUpperCase(); // Ép tên quyền viết hoa (VD: COURSE_CREATE)
 
-        // Kiểm tra trùng lặp mã quyền
-        if (permissionRepository.existsByCode(codeUpperCase)) {
-            throw new DuplicateResourceException("Mã quyền (Code) '" + codeUpperCase + "' đã tồn tại trong hệ thống!");
+        if (permissionRepository.existsByName(nameUpperCase)) {
+            throw new DuplicateResourceException("Tên quyền '" + nameUpperCase + "' đã tồn tại trong hệ thống!");
         }
 
         Permission permission = Permission.builder()
-                .code(codeUpperCase)
-                .scope(dto.getScope())
-                .name(dto.getName())
+                .name(nameUpperCase)
                 .description(dto.getDescription())
                 .build();
 
         Permission savedPermission = permissionRepository.save(permission);
-        log.info("Đã tạo mới thành công Quyền: {} ({})", savedPermission.getName(), savedPermission.getCode());
+        log.info("Đã tạo mới quyền: {}", savedPermission.getName());
 
         return mapToDto(savedPermission);
     }
 
     @Override
     @Transactional
-    public PermissionDto update(Integer id, PermissionDto dto) {
+    public PermissionDto update(Long id, PermissionDto dto) {
         Permission permission = permissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy quyền với ID: " + id));
 
-        String newCode = dto.getCode().toUpperCase();
+        String newName = dto.getName().toUpperCase();
 
-        // Nếu thay đổi mã quyền, phải kiểm tra xem mã mới có bị trùng với quyền khác không
-        if (!permission.getCode().equals(newCode) && permissionRepository.existsByCode(newCode)) {
-            throw new DuplicateResourceException("Mã quyền (Code) '" + newCode + "' đã được sử dụng!");
+        if (!permission.getName().equals(newName) && permissionRepository.existsByName(newName)) {
+            throw new DuplicateResourceException("Tên quyền '" + newName + "' đã được sử dụng!");
         }
 
-        permission.setCode(newCode);
-        permission.setScope(dto.getScope());
-        permission.setName(dto.getName());
+        permission.setName(newName);
         permission.setDescription(dto.getDescription());
 
         Permission updatedPermission = permissionRepository.save(permission);
-        log.info("Đã cập nhật Quyền ID: {}", id);
-
         return mapToDto(updatedPermission);
     }
 
     @Override
     @Transactional
-    public void delete(Integer id) {
+    public void delete(Long id) {
         Permission permission = permissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy quyền với ID: " + id));
 
@@ -82,21 +71,16 @@ public class PermissionServiceImpl implements PermissionService {
         boolean isAssigned = roleRepository.isPermissionAssigned(id);
 
         if (isAssigned) {
-            // NẾU ĐÃ GÁN -> CHẶN KHÔNG CHO XÓA VÀ BÁO LỖI
-            log.warn("Cố gắng xóa quyền ID: {} nhưng quyền này đang được gán cho Role", id);
-
-            // Bạn có thể dùng RuntimeException hoặc OperationNotPermittedException (nếu project đã có)
-            throw new RuntimeException("Không thể xóa! Quyền này đang được gán cho một hoặc nhiều vai trò. Vui lòng gỡ quyền khỏi các vai trò trước khi xóa.");
+            throw new RuntimeException("Không thể xóa! Quyền này đang được gán cho một hoặc nhiều vai trò.");
         } else {
-            // NẾU CHƯA GÁN -> XÓA CỨNG (Xóa sạch khỏi DB)
             permissionRepository.delete(permission);
-            log.info("Quyền ID: {} chưa được gán cho Role nào. Đã thực hiện XÓA CỨNG thành công", id);
+            log.info("Đã xóa hoàn toàn quyền ID: {}", id);
         }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PermissionDto getById(Integer id) {
+    public PermissionDto getById(Long id) {
         Permission permission = permissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy quyền với ID: " + id));
         return mapToDto(permission);
@@ -104,21 +88,11 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PermissionDto> getByScope(Permission.PermissionScope scope) {
-        return permissionRepository.findByScope(scope).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<PermissionDto> getAllPermissions(String keyword, Permission.PermissionScope scope, Pageable pageable) {
+    public Page<PermissionDto> getAllPermissions(String keyword, Pageable pageable) {
         Page<Permission> permissions;
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            permissions = permissionRepository.findByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(keyword, keyword, pageable);
-        } else if (scope != null) {
-            permissions = permissionRepository.findByScope(scope, pageable);
+            permissions = permissionRepository.findByNameContainingIgnoreCase(keyword, pageable);
         } else {
             permissions = permissionRepository.findAll(pageable);
         }
@@ -130,10 +104,9 @@ public class PermissionServiceImpl implements PermissionService {
     private PermissionDto mapToDto(Permission permission) {
         return PermissionDto.builder()
                 .id(permission.getId())
-                .code(permission.getCode())
-                .scope(permission.getScope())
                 .name(permission.getName())
                 .description(permission.getDescription())
+                .createdAt(permission.getCreatedAt())
                 .build();
     }
 }

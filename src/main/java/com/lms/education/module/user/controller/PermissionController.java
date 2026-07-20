@@ -1,11 +1,10 @@
 package com.lms.education.module.user.controller;
 
+import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.user.dto.PermissionDto;
-import com.lms.education.module.user.entity.Permission;
 import com.lms.education.module.user.service.PermissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,85 +14,70 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/permissions")
 @RequiredArgsConstructor
-@Slf4j
 public class PermissionController {
 
     private final PermissionService permissionService;
 
-    /**
-     * TẠO MỚI QUYỀN (PERMISSION)
-     */
     @PostMapping
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
-    public ResponseEntity<PermissionDto> createPermission(@Valid @RequestBody PermissionDto dto) {
-        log.info("REST request - Tạo mới quyền: {}", dto.getCode());
+    @PreAuthorize("hasAuthority('PERMISSION_CREATE')")
+    @LogActivity(module = "PERMISSION", action = "CREATE", targetType = "permission", description = "Tạo mới quyền hệ thống")
+    public ResponseEntity<Map<String, Object>> createPermission(@Valid @RequestBody PermissionDto dto) {
         PermissionDto createdPermission = permissionService.create(dto);
-        return new ResponseEntity<>(createdPermission, HttpStatus.CREATED);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Tạo quyền hệ thống thành công!");
+        response.put("data", createdPermission);
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    /**
-     * CẬP NHẬT QUYỀN
-     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
-    public ResponseEntity<PermissionDto> updatePermission(
-            @PathVariable Integer id,
+    @PreAuthorize("hasAuthority('PERMISSION_UPDATE')")
+    @LogActivity(module = "PERMISSION", action = "UPDATE", targetType = "permission", description = "Cập nhật quyền hệ thống")
+    public ResponseEntity<Map<String, Object>> updatePermission(
+            @PathVariable Long id,
             @Valid @RequestBody PermissionDto dto) {
-        log.info("REST request - Cập nhật quyền ID: {}", id);
+
         PermissionDto updatedPermission = permissionService.update(id, dto);
-        return ResponseEntity.ok(updatedPermission);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Cập nhật quyền thành công!");
+        response.put("data", updatedPermission);
+
+        return ResponseEntity.ok(response);
     }
 
-    /**
-     * XÓA QUYỀN
-     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
-    public ResponseEntity<Map<String, String>> deletePermission(@PathVariable Integer id) {
-        log.info("REST request - Xóa quyền ID: {}", id);
+    @PreAuthorize("hasAuthority('PERMISSION_DELETE')")
+    @LogActivity(module = "PERMISSION", action = "DELETE", targetType = "permission", description = "Xóa quyền hệ thống")
+    public ResponseEntity<Map<String, String>> deletePermission(@PathVariable Long id) { // Đổi Integer thành Long
         permissionService.delete(id);
-        return ResponseEntity.ok(Map.of("message", "Đã xóa permission thành công"));
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Xóa quyền thành công!");
+
+        return ResponseEntity.ok(response);
     }
 
-    /**
-     * LẤY CHI TIẾT 1 QUYỀN THEO ID
-     */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
-    public ResponseEntity<PermissionDto> getPermissionById(@PathVariable Integer id) {
-        PermissionDto permission = permissionService.getById(id);
-        return ResponseEntity.ok(permission);
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
+    public ResponseEntity<PermissionDto> getPermissionById(@PathVariable Long id) { // Đổi Integer thành Long
+        return ResponseEntity.ok(permissionService.getById(id));
     }
 
-    /**
-     * LẤY DANH SÁCH QUYỀN THEO NHÓM (SCOPE)
-     * Rất hữu ích khi Frontend cần render các Checkbox phân quyền theo từng cụm (VD: nhóm quyền CLASS, nhóm quyền ASSIGNMENT...)
-     */
-    @GetMapping("/scope/{scope}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
-    public ResponseEntity<List<PermissionDto>> getPermissionsByScope(@PathVariable Permission.PermissionScope scope) {
-        List<PermissionDto> permissions = permissionService.getByScope(scope);
-        return ResponseEntity.ok(permissions);
-    }
-
-    /**
-     * LẤY DANH SÁCH TẤT CẢ CÁC QUYỀN (Có phân trang, tìm kiếm và lọc theo Scope)
-     * Dành cho màn hình Bảng Quản trị (Data Table)
-     */
     @GetMapping
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
     public ResponseEntity<Page<PermissionDto>> getAllPermissions(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Permission.PermissionScope scope,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy, // Bảng permission thường sort theo ID cho dễ nhìn
+            @RequestParam(defaultValue = "name") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
         Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
@@ -101,7 +85,6 @@ public class PermissionController {
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<PermissionDto> permissions = permissionService.getAllPermissions(keyword, scope, pageable);
-        return ResponseEntity.ok(permissions);
+        return ResponseEntity.ok(permissionService.getAllPermissions(keyword, pageable));
     }
 }

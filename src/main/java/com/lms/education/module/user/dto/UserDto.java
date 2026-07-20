@@ -1,33 +1,33 @@
 package com.lms.education.module.user.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.lms.education.module.user.entity.User;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL) // Chỉ gửi các trường không null về Client
 public class UserDto {
-    private String id;
+
+    private Long id;
 
     private String email;
 
-    private User.UserStatus status;
+    private String fullName;
 
-    // Chỉ trả về thông tin Role cần thiết thay vì cả cục Object
-    private String roleId;
-    private String roleCode;
-    private String roleName;
+    private String phone;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private String status;
+
+    private Set<String> roles; // Chỉ cần trả về tên Role (VD: ROLE_ADMIN, ROLE_TEACHER)
+
+    private LocalDateTime expiryDate;
+
     private LocalDateTime createdAt;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime lastLogin;
+    private LocalDateTime updatedAt;
 }

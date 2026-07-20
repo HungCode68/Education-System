@@ -5,37 +5,54 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(length = 36)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(unique = true, nullable = false, length = 100)
     private String email;
 
     @Column(nullable = false)
     private String password;
 
-    public enum UserStatus {
-        active,
-        inactive,
-        suspended
-    }
+    @Column(name = "full_name", length = 100)
+    private String fullName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'active'")
-    @Builder.Default
-    private UserStatus status = UserStatus.active;
+    @Column(length = 20)
+    private String status = "ACTIVE"; // ACTIVE, INACTIVE, LOCKED
+
+    // --- Các trường phục vụ JWT Refresh Token ---
+
+    @Column(name = "refresh_token", length = 500)
+    private String refreshToken;
+
+    @Column(name = "expiry_date")
+    private Instant expiryDate;
+
+    // --- Quan hệ RBAC ---
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -44,17 +61,4 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @Column(name = "last_login")
-    private LocalDateTime lastLogin;
-
-    @Column(name = "refresh_token", columnDefinition = "TEXT")
-    private String refreshToken;
-
-    @Column(name = "refresh_token_expiry")
-    private LocalDateTime refreshTokenExpiry;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", nullable = false)
-    private Role role;
 }

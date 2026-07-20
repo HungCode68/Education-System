@@ -65,7 +65,7 @@ pipeline {
                     -e MINIO_ENDPOINT=http://103.57.220.127:9000 \
                     -e MINIO_ACCESS_KEY='admin' \
                     -e MINIO_SECRET_KEY='${SECRET_MINIO_KEY}' \
-                    -e MINIO_BUCKET_NAME=lms-storage \
+                    -e MINIO_BUCKET_NAME=lms-local \
                     -e APP_SECURITY_USER='admin' \
                     -e APP_SECURITY_PASSWORD='${SECRET_APP_PASS}' \
                     -v /var/log/lms-backend:/logs \
