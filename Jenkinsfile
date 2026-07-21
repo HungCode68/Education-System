@@ -47,7 +47,7 @@ pipeline {
             steps {
                 script {
                 echo 'Đang chạy Container...'
-                // Xóa container cũ đi (nếu có) để chạy cái mới
+                
                 sh "docker stop lms-backend || true"
                 sh "docker rm lms-backend || true"
 
