@@ -63,7 +63,8 @@ public class AuthController {
             responseBody.put("accessToken", accessToken);
             responseBody.put("tokenType", "Bearer");
             responseBody.put("fullName", userDetails.getFullName());
-            responseBody.put("roles", userDetails.getRoleDescriptions());
+            responseBody.put("roles", userDetails.getRoleCodes());
+            responseBody.put("roleDescriptions", userDetails.getRoleDescriptions());
             responseBody.put("permissions", userDetails.getPermissionList());
 
             // Trả về kết quả (chỉ gửi Cookie Refresh Token và Access Token trong Body)

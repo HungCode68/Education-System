@@ -28,6 +28,8 @@ public class UserPrincipal implements UserDetails {
 
     private String status;
 
+    private List<String> roleCodes;
+
     private List<String> roleDescriptions;
 
     private List<String> permissionList;
@@ -36,6 +38,7 @@ public class UserPrincipal implements UserDetails {
 
     public static UserPrincipal create(User user) {
         Set<GrantedAuthority> authoritySet = new HashSet<>();
+        List<String> roleCodes = new ArrayList<>();
         List<String> roleDescs = new ArrayList<>();
 
         Set<String> exactPermissions = new HashSet<>();
@@ -44,6 +47,7 @@ public class UserPrincipal implements UserDetails {
             user.getRoles().forEach(role -> {
                 // Thêm Role cho Spring Security
                 authoritySet.add(new SimpleGrantedAuthority(role.getName()));
+                roleCodes.add(role.getName());
 
                 // Lấy mô tả Role cho Frontend
                 if (role.getDescription() != null && !role.getDescription().trim().isEmpty()) {
@@ -70,6 +74,7 @@ public class UserPrincipal implements UserDetails {
                 .password(user.getPassword())
                 .fullName(user.getFullName())
                 .status(user.getStatus())
+                .roleCodes(roleCodes)
                 .roleDescriptions(roleDescs)
                 .permissionList(new ArrayList<>(exactPermissions))
                 .authorities(new ArrayList<>(authoritySet))
