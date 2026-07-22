@@ -82,7 +82,7 @@ public class JwtUtils {
                 .maxAge(24 * 60 * 60) // 24h
                 .httpOnly(true)       // Quan trọng: JavaScript không thể đọc
                 .secure(false)        // Để true nếu dùng HTTPS
-                .sameSite("Lax")      // Tương thích với SPA Frontend (Angular/React)
+                .sameSite("None")     // Cho phép Cross-site Cookie (Angular 4200 -> Backend 8080)
                 .build();
     }
 
