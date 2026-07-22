@@ -68,6 +68,8 @@ pipeline {
                     -e MINIO_BUCKET_NAME=lms-local \
                     -e APP_SECURITY_USER='admin' \
                     -e APP_SECURITY_PASSWORD='${SECRET_APP_PASS}' \
+                    -e JWT_COOKIE_SECURE=true \
+                    -e JWT_COOKIE_SAMESITE=None \
                     -v /var/log/lms-backend:/logs \
                     ${DOCKER_IMAGE}:${DOCKER_TAG}
                 """

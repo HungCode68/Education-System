@@ -52,11 +52,10 @@ public class AuthController {
             String newRefreshToken = UUID.randomUUID().toString();
             userService.updateRefreshToken(userDetails.getId(), newRefreshToken, Instant.now().plusSeconds(7L * 24 * 60 * 60));
 
-            // Tạo Cookies
-            var jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+            // Tạo Cookie Refresh Token HTTP-Only dài hạn cho luồng F5
             var jwtRefreshCookie = jwtUtils.generateRefreshJwtCookie(newRefreshToken);
 
-            // Tạo Token thô để trả về cho SPA Frontend (Angular/React) lưu vào Memory/Storage
+            // Tạo Token thô để trả về cho SPA Frontend (Angular/React) lưu vào Memory/RAM
             String accessToken = jwtUtils.generateTokenFromEmail(userDetails.getEmail());
 
             Map<String, Object> responseBody = new HashMap<>();
@@ -67,9 +66,8 @@ public class AuthController {
             responseBody.put("roles", userDetails.getRoleDescriptions());
             responseBody.put("permissions", userDetails.getPermissionList());
 
-            // Trả về kết quả (bao gồm cả Cookies lẫn Response Body cho Frontend)
+            // Trả về kết quả (chỉ gửi Cookie Refresh Token và Access Token trong Body)
             return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
                     .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
                     .body(responseBody);
 
@@ -119,9 +117,7 @@ public class AuthController {
                     String newRefreshToken = UUID.randomUUID().toString();
                     userService.updateRefreshToken(user.getId(), newRefreshToken, Instant.now().plusSeconds(7L * 24 * 60 * 60));
 
-                    // Tạo Cookies MỚI
-                    var userPrincipal = UserPrincipal.create(user);
-                    var newJwtCookie = jwtUtils.generateJwtCookie(userPrincipal);
+                    // Tạo Cookie Refresh Token MỚI
                     var newJwtRefreshCookie = jwtUtils.generateRefreshJwtCookie(newRefreshToken);
 
                     String newAccessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
@@ -132,7 +128,6 @@ public class AuthController {
                     body.put("tokenType", "Bearer");
 
                     return ResponseEntity.ok()
-                            .header(HttpHeaders.SET_COOKIE, newJwtCookie.toString())
                             .header(HttpHeaders.SET_COOKIE, newJwtRefreshCookie.toString())
                             .body(body);
                 })
@@ -148,12 +143,10 @@ public class AuthController {
             userService.deleteRefreshToken(refreshToken);
         }
 
-        // Xóa cookies ở trình duyệt
-        var cleanJwtCookie = jwtUtils.getCleanJwtCookie();
+        // Xóa refresh cookie ở trình duyệt
         var cleanRefreshCookie = jwtUtils.getCleanJwtRefreshCookie();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cleanJwtCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, cleanRefreshCookie.toString())
                 .body(Map.of("message", "Đăng xuất thành công và đã hủy phiên làm việc!"));
     }

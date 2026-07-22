@@ -32,11 +32,17 @@ public class JwtUtils {
     @Value("${app.jwt.refreshCookieName}")
     private String jwtRefreshCookie;
 
+    @Value("${app.jwt.cookieSecure:false}")
+    private boolean cookieSecure;
+
+    @Value("${app.jwt.cookieSameSite:Lax}")
+    private String cookieSameSite;
+
     private Key key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
-    //  Tạo Cookie chứa Access Token
+    // Tạo Cookie chứa Access Token
     public ResponseCookie generateJwtCookie(UserPrincipal userPrincipal) {
         String jwt = generateTokenFromEmail(userPrincipal.getEmail());
         return generateCookie(jwtCookie, jwt, "/api");
@@ -47,7 +53,7 @@ public class JwtUtils {
         return generateCookie(jwtRefreshCookie, refreshToken, "/api/v1/auth");
     }
 
-    //  Lấy Token từ Cookies ---
+    // Lấy Token từ Cookies ---
     public String getJwtFromCookies(HttpServletRequest request) {
         return getCookieValueByName(request, jwtCookie);
     }
@@ -81,8 +87,8 @@ public class JwtUtils {
                 .path(path)
                 .maxAge(24 * 60 * 60) // 24h
                 .httpOnly(true)       // Quan trọng: JavaScript không thể đọc
-                .secure(false)        // Để true nếu dùng HTTPS
-                .sameSite("None")     // Cho phép Cross-site Cookie (Angular 4200 -> Backend 8080)
+                .secure(cookieSecure) // Dynamic: false trên Localhost, true trên HTTPS Production
+                .sameSite(cookieSameSite) // Dynamic: Lax trên Localhost, None trên HTTPS Production
                 .build();
     }
 
