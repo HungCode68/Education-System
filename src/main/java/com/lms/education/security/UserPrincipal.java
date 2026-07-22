@@ -98,8 +98,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        // Tài khoản không bị khóa nếu status không phải là 'LOCKED'
-        return !"LOCKED".equalsIgnoreCase(status);
+        return status == null || !"LOCKED".equalsIgnoreCase(status);
     }
 
     @Override
@@ -109,7 +108,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        // Tài khoản chỉ hoạt động nếu status là 'ACTIVE'
-        return "ACTIVE".equalsIgnoreCase(status);
+        return status == null || status.trim().isEmpty() || "ACTIVE".equalsIgnoreCase(status);
     }
 }

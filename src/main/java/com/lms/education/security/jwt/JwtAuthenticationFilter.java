@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -29,8 +30,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            // Trích xuất JWT từ Cookie (thay vì Authorization Header)
-            String jwt = jwtUtils.getJwtFromCookies(request);
+            // 1. Trích xuất JWT từ Authorization Header (Ví dụ: Bearer <token>)
+            String jwt = null;
+            String headerAuth = request.getHeader("Authorization");
+            if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+                jwt = headerAuth.substring(7);
+            } else {
+                // 2. Nếu Header không có -> Trích xuất từ Cookie
+                jwt = jwtUtils.getJwtFromCookies(request);
+            }
 
             // Kiểm tra tính hợp lệ của Token
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {

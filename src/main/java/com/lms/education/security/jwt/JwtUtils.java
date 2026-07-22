@@ -82,7 +82,7 @@ public class JwtUtils {
                 .maxAge(24 * 60 * 60) // 24h
                 .httpOnly(true)       // Quan trọng: JavaScript không thể đọc
                 .secure(false)        // Để true nếu dùng HTTPS
-                .sameSite("Strict")   // Chống CSRF
+                .sameSite("Lax")      // Tương thích với SPA Frontend (Angular/React)
                 .build();
     }
 

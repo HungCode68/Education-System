@@ -56,16 +56,22 @@ public class AuthController {
             var jwtCookie = jwtUtils.generateJwtCookie(userDetails);
             var jwtRefreshCookie = jwtUtils.generateRefreshJwtCookie(newRefreshToken);
 
-            // Trả về kết quả
+            // Tạo Token thô để trả về cho SPA Frontend (Angular/React) lưu vào Memory/Storage
+            String accessToken = jwtUtils.generateTokenFromEmail(userDetails.getEmail());
+
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("message", "Đăng nhập thành công!");
+            responseBody.put("accessToken", accessToken);
+            responseBody.put("tokenType", "Bearer");
+            responseBody.put("fullName", userDetails.getFullName());
+            responseBody.put("roles", userDetails.getRoleDescriptions());
+            responseBody.put("permissions", userDetails.getPermissionList());
+
+            // Trả về kết quả (bao gồm cả Cookies lẫn Response Body cho Frontend)
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
                     .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
-                    .body(Map.of(
-                            "message", "Đăng nhập thành công!",
-                            "fullName", userDetails.getFullName(),
-                            "roles", userDetails.getRoleDescriptions(),
-                            "permissions", userDetails.getPermissionList()
-                    ));
+                    .body(responseBody);
 
         } catch (DisabledException e) {
             // Trạng thái != ACTIVE
@@ -118,10 +124,17 @@ public class AuthController {
                     var newJwtCookie = jwtUtils.generateJwtCookie(userPrincipal);
                     var newJwtRefreshCookie = jwtUtils.generateRefreshJwtCookie(newRefreshToken);
 
+                    String newAccessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
+
+                    Map<String, Object> body = new HashMap<>();
+                    body.put("message", "Làm mới phiên thành công!");
+                    body.put("accessToken", newAccessToken);
+                    body.put("tokenType", "Bearer");
+
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, newJwtCookie.toString())
                             .header(HttpHeaders.SET_COOKIE, newJwtRefreshCookie.toString())
-                            .body(Map.of("message", "Làm mới phiên thành công!"));
+                            .body(body);
                 })
                 .orElseThrow(() -> new RuntimeException("Token không hợp lệ hoặc đã bị sử dụng!"));
     }
