@@ -1,6 +1,6 @@
 package com.lms.education.module.academic.service;
 
-import com.lms.education.module.room.dto.RoomDto;
+import com.lms.education.module.academic.dto.RoomDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

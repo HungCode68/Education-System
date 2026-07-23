@@ -2,7 +2,7 @@ package com.lms.education.module.user.controller;
 
 import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.user.dto.DepartmentDto;
-import com.lms.education.module.department.service.DepartmentService;
+import com.lms.education.module.user.service.DepartmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
