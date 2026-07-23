@@ -5,12 +5,18 @@ import com.lms.education.module.user.dto.UserDto;
 import com.lms.education.module.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -33,10 +39,75 @@ public class UserController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACCOUNT_UPDATE')")
+    @LogActivity(module = "USER", action = "UPDATE", targetType = "user", description = "Cập nhật thông tin tài khoản")
+    public ResponseEntity<Map<String, Object>> updateUser(
+            @PathVariable Long id,
+            @RequestBody UserDto userDto) {
+
+        UserDto updatedUser = userService.updateUser(id, userDto.getFullName(), userDto.getRoles() != null ? new ArrayList<>(userDto.getRoles()) : null);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Cập nhật thông tin tài khoản thành công!");
+        response.put("data", updatedUser);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/roles")
+    @PreAuthorize("hasAuthority('ACCOUNT_UPDATE')")
+    @LogActivity(module = "USER", action = "UPDATE", targetType = "user", description = "Gán lại vai trò cho tài khoản")
+    public ResponseEntity<Map<String, Object>> updateUserRoles(
+            @PathVariable Long id,
+            @RequestBody List<String> roleNames) {
+
+        UserDto updatedUser = userService.updateUserRoles(id, roleNames);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Cập nhật vai trò tài khoản thành công!");
+        response.put("data", updatedUser);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/reset-password")
+    @PreAuthorize("hasAuthority('ACCOUNT_UPDATE')")
+    @LogActivity(module = "USER", action = "UPDATE", targetType = "user", description = "Đặt lại mật khẩu tài khoản")
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> passwordRequest) {
+
+        String newPassword = passwordRequest.get("newPassword");
+        userService.resetPassword(id, newPassword);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Đặt lại mật khẩu thành công!");
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ACCOUNT_VIEW')")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAuthority('ACCOUNT_VIEW')")
+    public ResponseEntity<Page<UserDto>> getAllUsers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return ResponseEntity.ok(userService.getAllUsers(keyword, pageable));
     }
 
     @GetMapping("/email")
