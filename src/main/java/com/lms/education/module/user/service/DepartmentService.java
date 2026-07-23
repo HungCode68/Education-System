@@ -1,5 +1,5 @@
-package com.lms.education.module.department.service;
-
+package com.lms.education.module.user.service;
+//package com.lms.education.module.department.service; không có vì DepartmentService nằm trong module user, không phải module department
 import com.lms.education.module.user.dto.DepartmentDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

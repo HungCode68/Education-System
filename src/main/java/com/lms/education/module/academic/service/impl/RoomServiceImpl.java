@@ -2,7 +2,7 @@ package com.lms.education.module.academic.service.impl;
 
 import com.lms.education.exception.DuplicateResourceException;
 import com.lms.education.exception.ResourceNotFoundException;
-import com.lms.education.module.room.dto.RoomDto;
+import com.lms.education.module.academic.dto.RoomDto;
 import com.lms.education.module.academic.entity.Room;
 import com.lms.education.module.academic.repository.RoomRepository;
 import com.lms.education.module.academic.service.RoomService;

@@ -1,7 +1,7 @@
 package com.lms.education.module.academic.controller;
 
 import com.lms.education.annotation.LogActivity;
-import com.lms.education.module.room.dto.RoomDto;
+import com.lms.education.module.academic.dto.RoomDto;
 import com.lms.education.module.academic.service.RoomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

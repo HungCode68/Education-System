@@ -5,7 +5,7 @@ import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.user.dto.DepartmentDto;
 import com.lms.education.module.user.entity.Department;
 import com.lms.education.module.user.repository.DepartmentRepository;
-import com.lms.education.module.department.service.DepartmentService;
+import com.lms.education.module.user.service.DepartmentService;
 import com.lms.education.module.user.repository.StaffRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
