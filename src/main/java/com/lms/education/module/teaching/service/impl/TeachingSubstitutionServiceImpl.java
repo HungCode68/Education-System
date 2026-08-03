@@ -222,12 +222,75 @@ public class TeachingSubstitutionServiceImpl implements TeachingSubstitutionServ
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.lms.education.module.user.dto.StaffDto> getAvailableTeachers(
+            Long scheduleId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate,
+            Long excludeSubstitutionId) {
+
+        ClassSchedule schedule = classScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+
+        if (startDate.isAfter(endDate)) {
+            throw new OperationNotPermittedException("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
+        }
+
+        List<Staff> teachers = staffRepository.findByStaffTypeContainingIgnoreCase("TEACHER");
+
+        return teachers.stream()
+                .filter(staff -> {
+                    boolean hasRegularConflict = scheduleAssignmentRepository.existsTeacherConflict(
+                            staff.getId(),
+                            schedule.getDayOfWeek(),
+                            schedule.getStartTime(),
+                            schedule.getEndTime(),
+                            null
+                    );
+                    if (hasRegularConflict) return false;
+
+                    boolean hasSubConflict = teachingSubstitutionRepository.existsSubstituteConflict(
+                            staff.getId(),
+                            schedule.getDayOfWeek(),
+                            schedule.getStartTime(),
+                            schedule.getEndTime(),
+                            startDate,
+                            endDate,
+                            excludeSubstitutionId
+                    );
+                    return !hasSubConflict;
+                })
+                .map(staff -> com.lms.education.module.user.dto.StaffDto.builder()
+                        .id(staff.getId())
+                        .userId(staff.getUser() != null ? staff.getUser().getId() : null)
+                        .userEmail(staff.getUser() != null ? staff.getUser().getEmail() : null)
+                        .departmentId(staff.getDepartment() != null ? staff.getDepartment().getId() : null)
+                        .departmentName(staff.getDepartment() != null ? staff.getDepartment().getName() : null)
+                        .staffCode(staff.getStaffCode())
+                        .staffType(staff.getStaffType())
+                        .fullName(staff.getFullName())
+                        .phone(staff.getPhone())
+                        .hireDate(staff.getHireDate())
+                        .contractType(staff.getContractType())
+                        .baseSalary(staff.getBaseSalary())
+                        .status(staff.getStatus())
+                        .createdAt(staff.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     private TeachingSubstitutionDto mapToDto(TeachingSubstitution entity) {
+        com.lms.education.module.academic.entity.ClassSchedule sch = entity.getSchedule();
         return TeachingSubstitutionDto.builder()
                 .id(entity.getId())
-                .scheduleId(entity.getSchedule().getId())
-                .classCode(entity.getSchedule().getClasses().getCode())
-                .className(entity.getSchedule().getClasses().getName())
+                .scheduleId(sch.getId())
+                .dayOfWeek(sch.getDayOfWeek())
+                .startTime(sch.getStartTime() != null ? sch.getStartTime().toString() : null)
+                .endTime(sch.getEndTime() != null ? sch.getEndTime().toString() : null)
+                .roomName(sch.getRoom() != null ? sch.getRoom().getName() : null)
+                .classCode(sch.getClasses().getCode())
+                .className(sch.getClasses().getName())
                 .absentStaffId(entity.getAbsentStaff().getId())
                 .absentStaffName(entity.getAbsentStaff().getFullName())
                 .absentStaffCode(entity.getAbsentStaff().getStaffCode())

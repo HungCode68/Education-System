@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -41,4 +42,8 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
 
     // Kiểm tra xem có nhân sự nào đang trực thuộc phòng ban này không
     boolean existsByDepartmentId(Long departmentId);
+
+    // Lọc danh sách nhân sự có staffType chứa từ khóa (Ví dụ: 'TEACHER')
+    @Query("SELECT s FROM Staff s WHERE UPPER(s.staffType) LIKE UPPER(CONCAT('%', :typeKey, '%'))")
+    List<Staff> findByStaffTypeContainingIgnoreCase(@Param("typeKey") String typeKey);
 }

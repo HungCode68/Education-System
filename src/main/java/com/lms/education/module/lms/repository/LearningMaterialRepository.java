@@ -15,12 +15,16 @@ public interface LearningMaterialRepository extends JpaRepository<LearningMateri
 
     List<LearningMaterial> findByLessonIdOrderByDisplayOrderAsc(Long lessonId);
 
+    List<LearningMaterial> findByCourseIdOrderByDisplayOrderAsc(Long courseId);
+
     List<LearningMaterial> findByLessonClassesIdOrderByDisplayOrderAsc(Long classId);
 
     @Query("SELECT lm FROM LearningMaterial lm WHERE " +
            "LOWER(lm.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(lm.lesson.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "(lm.lesson IS NOT NULL AND (LOWER(lm.lesson.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(lm.lesson.classes.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(lm.lesson.classes.code) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+           "LOWER(lm.lesson.classes.code) LIKE LOWER(CONCAT('%', :keyword, '%')))) OR " +
+           "(lm.course IS NOT NULL AND (LOWER(lm.course.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(lm.course.code) LIKE LOWER(CONCAT('%', :keyword, '%'))))")
     Page<LearningMaterial> searchMaterials(@Param("keyword") String keyword, Pageable pageable);
 }

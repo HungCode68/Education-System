@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface LearningMaterialService {
 
-    LearningMaterialDto createWithFile(Long lessonId, String title, String materialType, Integer displayOrder, MultipartFile file);
+    LearningMaterialDto createWithFile(Long courseId, Long lessonId, String title, String materialType, Integer displayOrder, MultipartFile file);
 
     LearningMaterialDto createExternalLink(LearningMaterialDto dto);
 
@@ -20,6 +20,8 @@ public interface LearningMaterialService {
     LearningMaterialDto getById(Long id);
 
     List<LearningMaterialDto> getByLessonId(Long lessonId);
+
+    List<LearningMaterialDto> getByCourseId(Long courseId);
 
     List<LearningMaterialDto> getByClassId(Long classId);
 

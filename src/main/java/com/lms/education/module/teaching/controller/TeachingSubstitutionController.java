@@ -94,4 +94,14 @@ public class TeachingSubstitutionController {
     public ResponseEntity<List<TeachingSubstitutionDto>> getSubstitutionsByClassId(@PathVariable Long classId) {
         return ResponseEntity.ok(teachingSubstitutionService.getSubstitutionsByClassId(classId));
     }
+
+    @GetMapping("/available-teachers")
+    @PreAuthorize("hasAuthority('ASSIGNMENT_VIEW')")
+    public ResponseEntity<List<com.lms.education.module.user.dto.StaffDto>> getAvailableTeachers(
+            @RequestParam Long scheduleId,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
+            @RequestParam(required = false) Long excludeSubstitutionId) {
+        return ResponseEntity.ok(teachingSubstitutionService.getAvailableTeachers(scheduleId, startDate, endDate, excludeSubstitutionId));
+    }
 }

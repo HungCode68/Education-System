@@ -178,11 +178,16 @@ public class ScheduleAssignmentServiceImpl implements ScheduleAssignmentService 
     }
 
     private ScheduleAssignmentDto mapToDto(ScheduleAssignment entity) {
+        ClassSchedule sch = entity.getSchedule();
         return ScheduleAssignmentDto.builder()
                 .id(entity.getId())
-                .scheduleId(entity.getSchedule().getId())
-                .classCode(entity.getSchedule().getClasses().getCode())
-                .className(entity.getSchedule().getClasses().getName())
+                .scheduleId(sch.getId())
+                .dayOfWeek(sch.getDayOfWeek())
+                .startTime(sch.getStartTime() != null ? sch.getStartTime().toString() : null)
+                .endTime(sch.getEndTime() != null ? sch.getEndTime().toString() : null)
+                .roomName(sch.getRoom() != null ? sch.getRoom().getName() : null)
+                .classCode(sch.getClasses().getCode())
+                .className(sch.getClasses().getName())
                 .staffId(entity.getTeacher().getId())
                 .staffCode(entity.getTeacher().getStaffCode())
                 .teacherName(entity.getTeacher().getFullName())

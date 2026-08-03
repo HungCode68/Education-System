@@ -1,5 +1,6 @@
 package com.lms.education.module.lms.entity;
 
+import com.lms.education.module.academic.entity.Course;
 import com.lms.education.module.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,8 +22,16 @@ public class LearningMaterial {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id", nullable = false)
+    @JoinColumn(name = "lesson_id")
     private Lesson lesson;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
+    @Column(name = "material_scope", length = 20)
+    @Builder.Default
+    private String materialScope = "LESSON"; // COURSE, LESSON
 
     @Column(nullable = false, length = 255)
     private String title;

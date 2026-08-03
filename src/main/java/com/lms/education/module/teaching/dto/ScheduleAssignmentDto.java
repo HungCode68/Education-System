@@ -20,6 +20,11 @@ public class ScheduleAssignmentDto {
     @NotNull(message = "ID lịch học không được để trống")
     private Long scheduleId;
 
+    private Integer dayOfWeek;
+    private String startTime;
+    private String endTime;
+    private String roomName;
+
     private String classCode;
     private String className;
 

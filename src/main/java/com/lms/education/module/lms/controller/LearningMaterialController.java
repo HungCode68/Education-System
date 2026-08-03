@@ -29,15 +29,16 @@ public class LearningMaterialController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('MATERIAL_CREATE')")
-    @LogActivity(module = "LMS", action = "UPLOAD_FILE", targetType = "learning_material", description = "Tải lên tệp tài liệu cho bài học")
+    @LogActivity(module = "LMS", action = "UPLOAD_FILE", targetType = "learning_material", description = "Tải lên tệp tài liệu")
     public ResponseEntity<Map<String, Object>> uploadFileMaterial(
-            @RequestParam("lessonId") Long lessonId,
+            @RequestParam(value = "courseId", required = false) Long courseId,
+            @RequestParam(value = "lessonId", required = false) Long lessonId,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "materialType", defaultValue = "DOCUMENT") String materialType,
             @RequestParam(value = "displayOrder", defaultValue = "0") Integer displayOrder,
             @RequestPart("file") MultipartFile file) {
 
-        LearningMaterialDto created = learningMaterialService.createWithFile(lessonId, title, materialType, displayOrder, file);
+        LearningMaterialDto created = learningMaterialService.createWithFile(courseId, lessonId, title, materialType, displayOrder, file);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Upload tệp tài liệu thành công!");
@@ -64,6 +65,7 @@ public class LearningMaterialController {
     @LogActivity(module = "LMS", action = "UPDATE", targetType = "learning_material", description = "Cập nhật tài liệu học tập")
     public ResponseEntity<Map<String, Object>> updateMaterial(
             @PathVariable Long id,
+            @RequestParam(value = "courseId", required = false) Long courseId,
             @RequestParam(value = "lessonId", required = false) Long lessonId,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "materialType", required = false) String materialType,
@@ -75,6 +77,7 @@ public class LearningMaterialController {
             @RequestPart(value = "file", required = false) MultipartFile file) {
 
         LearningMaterialDto dto = LearningMaterialDto.builder()
+                .courseId(courseId)
                 .lessonId(lessonId)
                 .title(title)
                 .materialType(materialType)
@@ -132,6 +135,12 @@ public class LearningMaterialController {
     @PreAuthorize("hasAuthority('MATERIAL_VIEW')")
     public ResponseEntity<List<LearningMaterialDto>> getMaterialsByLessonId(@PathVariable Long lessonId) {
         return ResponseEntity.ok(learningMaterialService.getByLessonId(lessonId));
+    }
+
+    @GetMapping("/course/{courseId}")
+    @PreAuthorize("hasAuthority('MATERIAL_VIEW')")
+    public ResponseEntity<List<LearningMaterialDto>> getMaterialsByCourseId(@PathVariable Long courseId) {
+        return ResponseEntity.ok(learningMaterialService.getByCourseId(courseId));
     }
 
     @GetMapping("/class/{classId}")

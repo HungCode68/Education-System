@@ -2,6 +2,8 @@ package com.lms.education.module.lms.controller;
 
 import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.lms.dto.QuestionDto;
+import com.lms.education.module.lms.dto.QuestionImportResultDto;
+import com.lms.education.module.lms.service.QuestionExcelService;
 import com.lms.education.module.lms.service.QuestionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,8 @@ import java.util.Map;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final QuestionExcelService questionExcelService;
+
 
     @PostMapping
     @PreAuthorize("hasAuthority('LMS_QUESTION_CREATE')")
@@ -101,4 +106,24 @@ public class QuestionController {
 
         return ResponseEntity.ok(questionService.getAll(keyword, questionType, pageable));
     }
+
+    @GetMapping("/import/template")
+    @PreAuthorize("hasAnyAuthority('LMS_QUESTION_VIEW', 'LMS_QUESTION_CREATE')")
+    public ResponseEntity<byte[]> downloadImportTemplate() {
+        byte[] excelBytes = questionExcelService.generateQuestionImportTemplate();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Question_Import_Template.xlsx\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excelBytes);
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('LMS_QUESTION_CREATE')")
+    @LogActivity(module = "LMS", action = "CREATE", targetType = "question", description = "Import hàng loạt câu hỏi từ file Excel")
+    public ResponseEntity<QuestionImportResultDto> importQuestions(@RequestParam("file") MultipartFile file) {
+        QuestionImportResultDto result = questionExcelService.importQuestionsFromExcel(file);
+        HttpStatus status = result.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(result, status);
+    }
 }
+

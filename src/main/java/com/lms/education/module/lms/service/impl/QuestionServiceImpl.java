@@ -3,7 +3,10 @@ package com.lms.education.module.lms.service.impl;
 import com.lms.education.exception.OperationNotPermittedException;
 import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.lms.dto.QuestionDto;
+import com.lms.education.module.lms.dto.QuestionOptionDto;
 import com.lms.education.module.lms.entity.Question;
+import com.lms.education.module.lms.entity.QuestionOption;
+import com.lms.education.module.lms.repository.QuestionOptionRepository;
 import com.lms.education.module.lms.repository.QuestionRepository;
 import com.lms.education.module.lms.service.QuestionService;
 import com.lms.education.service.MinioStorageService;
@@ -24,7 +27,9 @@ import java.util.stream.Collectors;
 public class QuestionServiceImpl implements QuestionService {
 
     private final QuestionRepository questionRepository;
+    private final QuestionOptionRepository questionOptionRepository;
     private final MinioStorageService minioStorageService;
+
 
     private static final java.util.Set<String> VALID_QUESTION_TYPES = java.util.Set.of(
             "MULTIPLE_CHOICE", "ESSAY", "LISTENING", "READING", "FILL_BLANK", "TRUE_FALSE"
@@ -64,8 +69,24 @@ public class QuestionServiceImpl implements QuestionService {
         Question saved = questionRepository.save(question);
         log.info("Đã tạo mới câu hỏi ngân hàng ID: {} (Loại: {})", saved.getId(), saved.getQuestionType());
 
+        if (dto.getOptions() != null && !dto.getOptions().isEmpty()) {
+            QuestionOptionServiceImpl.validateOptionsForQuestionType(formattedType, dto.getOptions());
+            for (QuestionOptionDto optDto : dto.getOptions()) {
+                if (optDto.getOptionContent() == null || optDto.getOptionContent().trim().isEmpty()) {
+                    continue;
+                }
+                QuestionOption option = QuestionOption.builder()
+                        .question(saved)
+                        .optionContent(optDto.getOptionContent().trim())
+                        .isCorrect(Boolean.TRUE.equals(optDto.getIsCorrect()))
+                        .build();
+                questionOptionRepository.save(option);
+            }
+        }
+
         return mapToDto(saved);
     }
+
 
     @Override
     @Transactional
@@ -123,8 +144,29 @@ public class QuestionServiceImpl implements QuestionService {
         Question updated = questionRepository.save(existing);
         log.info("Đã cập nhật câu hỏi ID: {}", id);
 
+        if (dto.getOptions() != null) {
+            questionOptionRepository.deleteByQuestionId(id);
+            questionOptionRepository.flush();
+
+            if (!dto.getOptions().isEmpty()) {
+                QuestionOptionServiceImpl.validateOptionsForQuestionType(targetType, dto.getOptions());
+                for (QuestionOptionDto optDto : dto.getOptions()) {
+                    if (optDto.getOptionContent() == null || optDto.getOptionContent().trim().isEmpty()) {
+                        continue;
+                    }
+                    QuestionOption option = QuestionOption.builder()
+                            .question(updated)
+                            .optionContent(optDto.getOptionContent().trim())
+                            .isCorrect(Boolean.TRUE.equals(optDto.getIsCorrect()))
+                            .build();
+                    questionOptionRepository.save(option);
+                }
+            }
+        }
+
         return mapToDto(updated);
     }
+
 
     @Override
     @Transactional
@@ -181,6 +223,19 @@ public class QuestionServiceImpl implements QuestionService {
             downloadMediaUrl = minioStorageService.getFileUrl(entity.getMediaUrl());
         }
 
+        List<QuestionOptionDto> optionDtos = null;
+        if (entity.getId() != null) {
+            optionDtos = questionOptionRepository.findByQuestionIdOrderByIdAsc(entity.getId())
+                    .stream()
+                    .map(opt -> QuestionOptionDto.builder()
+                            .id(opt.getId())
+                            .questionId(entity.getId())
+                            .optionContent(opt.getOptionContent())
+                            .isCorrect(opt.getIsCorrect())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
         return QuestionDto.builder()
                 .id(entity.getId())
                 .questionType(entity.getQuestionType())
@@ -189,6 +244,8 @@ public class QuestionServiceImpl implements QuestionService {
                 .downloadMediaUrl(downloadMediaUrl)
                 .readingPassage(entity.getReadingPassage())
                 .createdAt(entity.getCreatedAt())
+                .options(optionDtos)
                 .build();
     }
 }
+

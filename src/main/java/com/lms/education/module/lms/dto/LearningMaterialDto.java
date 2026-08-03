@@ -17,12 +17,16 @@ public class LearningMaterialDto {
 
     private Long id;
 
-    @NotNull(message = "ID bài học không được để trống")
     private Long lessonId;
-
     private String lessonName;
     private Long classId;
     private String className;
+
+    private Long courseId;
+    private String courseCode;
+    private String courseName;
+
+    private String materialScope; // COURSE, LESSON
 
     @NotBlank(message = "Tiêu đề tài liệu không được để trống")
     private String title;

@@ -2,6 +2,8 @@ package com.lms.education.module.lms.service.impl;
 
 import com.lms.education.exception.OperationNotPermittedException;
 import com.lms.education.exception.ResourceNotFoundException;
+import com.lms.education.module.academic.entity.Course;
+import com.lms.education.module.academic.repository.CourseRepository;
 import com.lms.education.module.lms.dto.LearningMaterialDto;
 import com.lms.education.module.lms.entity.LearningMaterial;
 import com.lms.education.module.lms.entity.Lesson;
@@ -37,6 +39,7 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
 
     private final LearningMaterialRepository learningMaterialRepository;
     private final LessonRepository lessonRepository;
+    private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final StaffRepository staffRepository;
     private final ScheduleAssignmentRepository scheduleAssignmentRepository;
@@ -45,19 +48,35 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
 
     @Override
     @Transactional
-    public LearningMaterialDto createWithFile(Long lessonId, String title, String materialType, Integer displayOrder, MultipartFile file) {
+    public LearningMaterialDto createWithFile(Long courseId, Long lessonId, String title, String materialType, Integer displayOrder, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new OperationNotPermittedException("File upload không được để trống!");
         }
 
-        Lesson lesson = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học với ID: " + lessonId));
+        if (courseId == null && lessonId == null) {
+            throw new OperationNotPermittedException("Tài liệu phải thuộc về một Khóa học (courseId) hoặc Bài học (lessonId)!");
+        }
+        if (courseId != null && lessonId != null) {
+            throw new OperationNotPermittedException("Tài liệu chỉ được thuộc về Khóa học hoặc Bài học, không thể chọn cả hai!");
+        }
+
+        Course course = null;
+        Lesson lesson = null;
+        String materialScope = "LESSON";
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = getCurrentUser(auth);
 
-        // Kiểm tra phân công giảng dạy cho Lớp học chứa bài học này
-        checkTeacherClassPermission(currentUser, auth, lesson.getClasses().getId());
+        if (courseId != null) {
+            course = courseRepository.findById(courseId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + courseId));
+            materialScope = "COURSE";
+        } else {
+            lesson = lessonRepository.findById(lessonId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học với ID: " + lessonId));
+            checkTeacherClassPermission(currentUser, auth, lesson.getClasses().getId());
+            materialScope = "LESSON";
+        }
 
         // Upload file lên MinIO
         String objectName = minioStorageService.uploadFile(file);
@@ -68,7 +87,9 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         String indexingStatus = "NOT_INDEXED";
 
         LearningMaterial material = LearningMaterial.builder()
+                .course(course)
                 .lesson(lesson)
+                .materialScope(materialScope)
                 .title(title != null ? title.trim() : file.getOriginalFilename())
                 .materialType(formattedType)
                 .sourceType("MINIO")
@@ -82,8 +103,8 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
                 .build();
 
         LearningMaterial saved = learningMaterialRepository.save(material);
-        log.info("Đã tạo mới tài liệu tệp: {} (ID: {}) cho bài học: {}, isOfficial={}, isRagEnabled={}",
-                saved.getTitle(), saved.getId(), lesson.getName(), isOfficial, isRagEnabled);
+        log.info("Đã tạo mới tài liệu tệp: {} (ID: {}) phạm vi: {}, isOfficial={}, isRagEnabled={}",
+                saved.getTitle(), saved.getId(), materialScope, isOfficial, isRagEnabled);
 
         return mapToDto(saved);
     }
@@ -95,19 +116,40 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
             throw new OperationNotPermittedException("Đường dẫn liên kết (resourceUrl) không được để trống!");
         }
 
-        Lesson lesson = lessonRepository.findById(dto.getLessonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học với ID: " + dto.getLessonId()));
+        Long courseId = dto.getCourseId();
+        Long lessonId = dto.getLessonId();
+
+        if (courseId == null && lessonId == null) {
+            throw new OperationNotPermittedException("Tài liệu phải thuộc về một Khóa học (courseId) hoặc Bài học (lessonId)!");
+        }
+        if (courseId != null && lessonId != null) {
+            throw new OperationNotPermittedException("Tài liệu chỉ được thuộc về Khóa học hoặc Bài học, không thể chọn cả hai!");
+        }
+
+        Course course = null;
+        Lesson lesson = null;
+        String materialScope = "LESSON";
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = getCurrentUser(auth);
 
-        // Kiểm tra phân công giảng dạy cho Lớp học chứa bài học này
-        checkTeacherClassPermission(currentUser, auth, lesson.getClasses().getId());
+        if (courseId != null) {
+            course = courseRepository.findById(courseId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + courseId));
+            materialScope = "COURSE";
+        } else {
+            lesson = lessonRepository.findById(lessonId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học với ID: " + lessonId));
+            checkTeacherClassPermission(currentUser, auth, lesson.getClasses().getId());
+            materialScope = "LESSON";
+        }
 
         boolean isOfficial = isAcademicDepartmentUser(currentUser, auth);
 
         LearningMaterial material = LearningMaterial.builder()
+                .course(course)
                 .lesson(lesson)
+                .materialScope(materialScope)
                 .title(dto.getTitle().trim())
                 .materialType(dto.getMaterialType() != null ? dto.getMaterialType().trim().toUpperCase() : "EXTERNAL_LINK")
                 .sourceType("EXTERNAL")
@@ -121,8 +163,8 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
                 .build();
 
         LearningMaterial saved = learningMaterialRepository.save(material);
-        log.info("Đã tạo mới tài liệu link ngoài: {} (ID: {}) cho bài học: {}, isOfficial={}",
-                saved.getTitle(), saved.getId(), lesson.getName(), isOfficial);
+        log.info("Đã tạo mới tài liệu link ngoài: {} (ID: {}) phạm vi: {}, isOfficial={}",
+                saved.getTitle(), saved.getId(), materialScope, isOfficial);
 
         return mapToDto(saved);
     }
@@ -136,14 +178,24 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = getCurrentUser(auth);
 
-        // Kiểm tra phân công giảng dạy cho Lớp học chứa bài học này
-        checkTeacherClassPermission(currentUser, auth, existing.getLesson().getClasses().getId());
+        // Kiểm tra phân công giảng dạy cho Lớp học chứa bài học này (nếu là tài liệu bài học)
+        if (existing.getLesson() != null && existing.getLesson().getClasses() != null) {
+            checkTeacherClassPermission(currentUser, auth, existing.getLesson().getClasses().getId());
+        }
 
-        if (dto.getLessonId() != null) {
+        if (dto.getCourseId() != null) {
+            Course course = courseRepository.findById(dto.getCourseId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + dto.getCourseId()));
+            existing.setCourse(course);
+            existing.setLesson(null);
+            existing.setMaterialScope("COURSE");
+        } else if (dto.getLessonId() != null) {
             Lesson lesson = lessonRepository.findById(dto.getLessonId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học với ID: " + dto.getLessonId()));
             checkTeacherClassPermission(currentUser, auth, lesson.getClasses().getId());
             existing.setLesson(lesson);
+            existing.setCourse(null);
+            existing.setMaterialScope("LESSON");
         }
 
         if (dto.getTitle() != null && !dto.getTitle().trim().isEmpty()) {
@@ -215,8 +267,10 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = getCurrentUser(auth);
 
-        // Kiểm tra phân công giảng dạy cho Lớp học chứa bài học này
-        checkTeacherClassPermission(currentUser, auth, existing.getLesson().getClasses().getId());
+        // Kiểm tra phân công giảng dạy cho Lớp học chứa bài học này (nếu là tài liệu bài học)
+        if (existing.getLesson() != null && existing.getLesson().getClasses() != null) {
+            checkTeacherClassPermission(currentUser, auth, existing.getLesson().getClasses().getId());
+        }
 
         if ("MINIO".equalsIgnoreCase(existing.getSourceType())) {
             minioStorageService.deleteFile(existing.getResourceUrl());
@@ -238,6 +292,14 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
     @Transactional(readOnly = true)
     public List<LearningMaterialDto> getByLessonId(Long lessonId) {
         return learningMaterialRepository.findByLessonIdOrderByDisplayOrderAsc(lessonId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LearningMaterialDto> getByCourseId(Long courseId) {
+        return learningMaterialRepository.findByCourseIdOrderByDisplayOrderAsc(courseId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
@@ -268,12 +330,14 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
             downloadUrl = minioStorageService.getFileUrl(entity.getResourceUrl());
         }
 
-        return LearningMaterialDto.builder()
+        String scope = entity.getMaterialScope();
+        if (scope == null) {
+            scope = entity.getCourse() != null ? "COURSE" : "LESSON";
+        }
+
+        LearningMaterialDto.LearningMaterialDtoBuilder builder = LearningMaterialDto.builder()
                 .id(entity.getId())
-                .lessonId(entity.getLesson().getId())
-                .lessonName(entity.getLesson().getName())
-                .classId(entity.getLesson().getClasses().getId())
-                .className(entity.getLesson().getClasses().getName())
+                .materialScope(scope)
                 .title(entity.getTitle())
                 .materialType(entity.getMaterialType())
                 .sourceType(entity.getSourceType())
@@ -287,8 +351,24 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
                 .uploadedById(entity.getUploadedBy() != null ? entity.getUploadedBy().getId() : null)
                 .uploadedByName(entity.getUploadedBy() != null ? entity.getUploadedBy().getFullName() : null)
                 .uploadedByEmail(entity.getUploadedBy() != null ? entity.getUploadedBy().getEmail() : null)
-                .createdAt(entity.getCreatedAt())
-                .build();
+                .createdAt(entity.getCreatedAt());
+
+        if (entity.getLesson() != null) {
+            builder.lessonId(entity.getLesson().getId())
+                   .lessonName(entity.getLesson().getName());
+            if (entity.getLesson().getClasses() != null) {
+                builder.classId(entity.getLesson().getClasses().getId())
+                       .className(entity.getLesson().getClasses().getName());
+            }
+        }
+
+        if (entity.getCourse() != null) {
+            builder.courseId(entity.getCourse().getId())
+                   .courseCode(entity.getCourse().getCode())
+                   .courseName(entity.getCourse().getName());
+        }
+
+        return builder.build();
     }
 
     private User getCurrentUser(Authentication auth) {

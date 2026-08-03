@@ -189,6 +189,13 @@ public class StaffServiceImpl implements StaffService {
         return staffs.map(this::mapToDto);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<StaffDto> getTeachers() {
+        List<Staff> teachers = staffRepository.findByStaffTypeContainingIgnoreCase("TEACHER");
+        return teachers.stream().map(this::mapToDto).collect(java.util.stream.Collectors.toList());
+    }
+
 
     // THÊM HÀM XỬ LÝ CẤP TÀI KHOẢN
     @Override

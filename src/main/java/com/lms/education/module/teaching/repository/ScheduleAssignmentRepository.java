@@ -26,6 +26,10 @@ public interface ScheduleAssignmentRepository extends JpaRepository<ScheduleAssi
            "(:userId IS NOT NULL AND sa.teacher.user.id = :userId OR :staffId IS NOT NULL AND sa.teacher.id = :staffId)")
     boolean isTeacherAssignedToClass(@Param("classId") Long classId, @Param("userId") Long userId, @Param("staffId") Long staffId);
 
+    @Query("SELECT DISTINCT sa.schedule.classes.id FROM ScheduleAssignment sa WHERE " +
+           "(:userId IS NOT NULL AND sa.teacher.user.id = :userId OR :staffId IS NOT NULL AND sa.teacher.id = :staffId)")
+    List<Long> findClassIdsByTeacher(@Param("userId") Long userId, @Param("staffId") Long staffId);
+
     @Query("SELECT COUNT(sa) > 0 FROM ScheduleAssignment sa WHERE " +
            "sa.teacher.id = :teacherId AND " +
            "sa.schedule.dayOfWeek = :dayOfWeek AND " +

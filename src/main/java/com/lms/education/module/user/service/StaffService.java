@@ -4,6 +4,8 @@ import com.lms.education.module.user.dto.StaffDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 public interface StaffService {
 
     StaffDto create(StaffDto dto);
@@ -19,6 +21,8 @@ public interface StaffService {
     Page<StaffDto> getAllStaffs(String keyword, Pageable pageable);
 
     Page<StaffDto> getStaffsByDepartmentId(Long departmentId, Pageable pageable);
+
+    List<StaffDto> getTeachers();
 
     // Cấp tài khoản tự động hàng loạt
     java.util.Map<String, Object> provisionAccounts(com.lms.education.module.user.dto.AccountProvisionDto dto);

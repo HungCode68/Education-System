@@ -66,6 +66,12 @@ public class StaffController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/teachers")
+    @PreAuthorize("hasAuthority('STAFF_VIEW')")
+    public ResponseEntity<java.util.List<StaffDto>> getTeachers() {
+        return ResponseEntity.ok(staffService.getTeachers());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('STAFF_VIEW')")
     public ResponseEntity<StaffDto> getStaffById(@PathVariable Long id) {
@@ -84,7 +90,8 @@ public class StaffController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy, // Thường danh sách nhân sự nên hiển thị người mới tạo lên đầu
+            @RequestParam(defaultValue = "createdAt") String sortBy, // Thường danh sách nhân sự nên hiển thị người mới
+                                                                     // tạo lên đầu
             @RequestParam(defaultValue = "desc") String sortDir) {
 
         Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
@@ -94,7 +101,6 @@ public class StaffController {
 
         return ResponseEntity.ok(staffService.getAllStaffs(keyword, pageable));
     }
-
 
     @GetMapping("/department/{departmentId}")
     @PreAuthorize("hasAuthority('STAFF_VIEW')")

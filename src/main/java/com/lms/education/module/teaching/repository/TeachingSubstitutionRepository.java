@@ -27,6 +27,11 @@ public interface TeachingSubstitutionRepository extends JpaRepository<TeachingSu
            "ts.status = 'APPROVED'")
     boolean isTeacherSubstitutingForClass(@Param("classId") Long classId, @Param("userId") Long userId, @Param("staffId") Long staffId);
 
+    @Query("SELECT DISTINCT ts.schedule.classes.id FROM TeachingSubstitution ts WHERE " +
+           "(:userId IS NOT NULL AND ts.substituteStaff.user.id = :userId OR :staffId IS NOT NULL AND ts.substituteStaff.id = :staffId) AND " +
+           "ts.status = 'APPROVED'")
+    List<Long> findClassIdsBySubstituteTeacher(@Param("userId") Long userId, @Param("staffId") Long staffId);
+
     @Query("SELECT COUNT(ts) > 0 FROM TeachingSubstitution ts WHERE " +
            "ts.substituteStaff.id = :staffId AND " +
            "ts.schedule.dayOfWeek = :dayOfWeek AND " +
