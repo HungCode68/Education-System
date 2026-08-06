@@ -21,4 +21,6 @@ public interface ClassScheduleService {
     List<TimetableEntryDto> getStudentTimetable(Long studentId, LocalDate startDate, LocalDate endDate);
 
     List<TimetableEntryDto> getTeacherTimetable(Long teacherId, LocalDate startDate, LocalDate endDate);
+
+    List<TimetableEntryDto> getMyTeacherTimetable(LocalDate startDate, LocalDate endDate);
 }

@@ -87,4 +87,10 @@ public class ClassesController {
 
         return ResponseEntity.ok(classesService.getAllClasses(keyword, pageable));
     }
+
+    @GetMapping("/my-classes")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<java.util.List<ClassesDto>> getMyClasses() {
+        return ResponseEntity.ok(classesService.getMyClasses());
+    }
 }

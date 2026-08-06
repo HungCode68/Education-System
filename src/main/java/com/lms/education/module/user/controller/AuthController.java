@@ -123,16 +123,37 @@ public class AuthController {
 
                     String newAccessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
 
+                    UserPrincipal principal = UserPrincipal.create(user);
+
                     Map<String, Object> body = new HashMap<>();
                     body.put("message", "Làm mới phiên thành công!");
                     body.put("accessToken", newAccessToken);
                     body.put("tokenType", "Bearer");
+                    body.put("fullName", principal.getFullName());
+                    body.put("roles", principal.getRoleCodes());
+                    body.put("roleDescriptions", principal.getRoleDescriptions());
+                    body.put("permissions", principal.getPermissionList());
 
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, newJwtRefreshCookie.toString())
                             .body(body);
                 })
                 .orElseThrow(() -> new RuntimeException("Token không hợp lệ hoặc đã bị sử dụng!"));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserPrincipal)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Chưa đăng nhập hoặc phiên làm việc đã hết hạn."));
+        }
+        UserPrincipal userDetails = (UserPrincipal) authentication.getPrincipal();
+        Map<String, Object> responseBody = new HashMap<>();
+        responseBody.put("email", userDetails.getEmail());
+        responseBody.put("fullName", userDetails.getFullName());
+        responseBody.put("roles", userDetails.getRoleCodes());
+        responseBody.put("roleDescriptions", userDetails.getRoleDescriptions());
+        responseBody.put("permissions", userDetails.getPermissionList());
+        return ResponseEntity.ok(responseBody);
     }
 
     @PostMapping("/logout")

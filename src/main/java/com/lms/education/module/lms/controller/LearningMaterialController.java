@@ -34,9 +34,26 @@ public class LearningMaterialController {
             @RequestParam(value = "courseId", required = false) Long courseId,
             @RequestParam(value = "lessonId", required = false) Long lessonId,
             @RequestParam(value = "title", required = false) String title,
-            @RequestParam(value = "materialType", defaultValue = "DOCUMENT") String materialType,
-            @RequestParam(value = "displayOrder", defaultValue = "0") Integer displayOrder,
+            @RequestParam(value = "materialType", required = false) String materialType,
+            @RequestParam(value = "displayOrder", required = false) Integer displayOrder,
+            @RequestPart(value = "data", required = false) LearningMaterialDto dataDto,
             @RequestPart("file") MultipartFile file) {
+
+        if (dataDto != null) {
+            if (courseId == null) courseId = dataDto.getCourseId();
+            if (lessonId == null) lessonId = dataDto.getLessonId();
+            if (title == null || title.isBlank()) title = dataDto.getTitle();
+            if (materialType == null) materialType = dataDto.getMaterialType();
+            if (displayOrder == null) displayOrder = dataDto.getDisplayOrder();
+        }
+
+        if (materialType == null || materialType.isBlank()) {
+            materialType = "DOCUMENT";
+        }
+
+        if (displayOrder == null) {
+            displayOrder = 0;
+        }
 
         LearningMaterialDto created = learningMaterialService.createWithFile(courseId, lessonId, title, materialType, displayOrder, file);
 

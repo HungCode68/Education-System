@@ -15,4 +15,6 @@ public interface ClassesService {
     ClassesDto getById(Long id);
 
     Page<ClassesDto> getAllClasses(String keyword, Pageable pageable);
+
+    java.util.List<ClassesDto> getMyClasses();
 }

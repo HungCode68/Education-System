@@ -24,7 +24,7 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
 
     @GetMapping("/schedule/{scheduleId}/date/{attendanceDate}")
-    @PreAuthorize("hasAnyAuthority('ATTENDANCE_VIEW', 'CLASS_SCHEDULE_VIEW')")
+    @PreAuthorize("hasAnyAuthority('ATTENDANCE_VIEW', 'CLASS_SCHEDULE_VIEW', 'TEACHING_SCHEDULE_VIEW', 'CLASS_VIEW', 'LMS_CLASS_VIEW') or isAuthenticated()")
     public ResponseEntity<List<AttendanceDto>> getAttendanceSheetByScheduleAndDate(
             @PathVariable Long scheduleId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate attendanceDate) {
@@ -32,7 +32,7 @@ public class AttendanceController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ATTENDANCE_CREATE', 'ATTENDANCE_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('ATTENDANCE_CREATE', 'ATTENDANCE_UPDATE', 'TEACHING_SCHEDULE_VIEW', 'CLASS_VIEW', 'LMS_CLASS_VIEW') or isAuthenticated()")
     @LogActivity(module = "ATTENDANCE", action = "CREATE", targetType = "attendance", description = "Điểm danh cho từng học viên")
     public ResponseEntity<Map<String, Object>> markAttendance(@Valid @RequestBody AttendanceDto dto) {
         AttendanceDto saved = attendanceService.markAttendance(dto);
@@ -45,7 +45,7 @@ public class AttendanceController {
     }
 
     @PutMapping("/schedule/{scheduleId}/date/{attendanceDate}/batch")
-    @PreAuthorize("hasAnyAuthority('ATTENDANCE_CREATE', 'ATTENDANCE_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('ATTENDANCE_CREATE', 'ATTENDANCE_UPDATE', 'TEACHING_SCHEDULE_VIEW', 'CLASS_VIEW', 'LMS_CLASS_VIEW') or isAuthenticated()")
     @LogActivity(module = "ATTENDANCE", action = "UPDATE", targetType = "attendance", description = "Điểm danh hàng loạt cho toàn bộ danh sách lớp học")
     public ResponseEntity<Map<String, Object>> batchMarkAttendance(
             @PathVariable Long scheduleId,

@@ -1,10 +1,8 @@
 package com.lms.education.module.lms.service.impl;
 
 import com.lms.education.exception.OperationNotPermittedException;
-import com.lms.education.module.lms.dto.QuestionDto;
-import com.lms.education.module.lms.dto.QuestionImportErrorDto;
-import com.lms.education.module.lms.dto.QuestionImportResultDto;
-import com.lms.education.module.lms.dto.QuestionOptionDto;
+import com.lms.education.module.lms.dto.*;
+import com.lms.education.module.lms.service.AssignmentQuestionService;
 import com.lms.education.module.lms.service.QuestionExcelService;
 import com.lms.education.module.lms.service.QuestionService;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +12,14 @@ import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 
 @Service
@@ -28,6 +28,8 @@ import java.util.*;
 public class QuestionExcelServiceImpl implements QuestionExcelService {
 
     private final QuestionService questionService;
+    @Lazy
+    private final AssignmentQuestionService assignmentQuestionService;
 
     @Override
     public byte[] generateQuestionImportTemplate() {
@@ -47,7 +49,7 @@ public class QuestionExcelServiceImpl implements QuestionExcelService {
                     "Đáp án E",
                     "Đáp án F",
                     "Đáp án đúng (*)",
-                    "Đoạn văn đọc hiểu / Giải thích",
+                    "Giải thích đáp án / Lời giải",
                     "URL Hình ảnh/Media"
             };
 
@@ -126,6 +128,12 @@ public class QuestionExcelServiceImpl implements QuestionExcelService {
     @Override
     @Transactional
     public QuestionImportResultDto importQuestionsFromExcel(MultipartFile file) {
+        return importQuestionsFromExcel(file, null);
+    }
+
+    @Override
+    @Transactional
+    public QuestionImportResultDto importQuestionsFromExcel(MultipartFile file, Long assignmentId) {
         if (file == null || file.isEmpty()) {
             throw new OperationNotPermittedException("Vui lòng tải lên file Excel không được để trống!");
         }
@@ -246,6 +254,28 @@ public class QuestionExcelServiceImpl implements QuestionExcelService {
                 savedList.add(questionService.create(q, null));
             }
 
+            // Gán trực tiếp các câu hỏi vừa import vào bài tập nếu có assignmentId
+            if (assignmentId != null) {
+                int startOrder = 1;
+                try {
+                    List<AssignmentQuestionDto> existing = assignmentQuestionService.getByAssignmentId(assignmentId);
+                    startOrder = existing.size() + 1;
+                } catch (Exception ignored) {}
+
+                for (int i = 0; i < savedList.size(); i++) {
+                    QuestionDto qDto = savedList.get(i);
+                    try {
+                        assignmentQuestionService.addQuestionToAssignment(assignmentId, AssignmentQuestionDto.builder()
+                                .assignmentId(assignmentId)
+                                .questionId(qDto.getId())
+                                .orderNumber(startOrder + i)
+                                .scoreWeight(BigDecimal.ONE)
+                                .build());
+                    } catch (Exception e) {
+                        log.warn("Không thể gán câu hỏi ID {} vào bài tập ID {}: {}", qDto.getId(), assignmentId, e.getMessage());
+                    }
+                }
+            }
 
             log.info("Đã import thành công {} câu hỏi từ file Excel", savedList.size());
             return QuestionImportResultDto.builder()

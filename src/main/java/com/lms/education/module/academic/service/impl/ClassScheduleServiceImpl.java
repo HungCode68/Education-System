@@ -15,10 +15,15 @@ import com.lms.education.module.teaching.entity.ScheduleAssignment;
 import com.lms.education.module.teaching.entity.TeachingSubstitution;
 import com.lms.education.module.teaching.repository.ScheduleAssignmentRepository;
 import com.lms.education.module.teaching.repository.TeachingSubstitutionRepository;
+import com.lms.education.module.user.entity.Staff;
+import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.StaffRepository;
 import com.lms.education.module.user.repository.StudentRepository;
+import com.lms.education.module.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +45,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     private final TeachingSubstitutionRepository teachingSubstitutionRepository;
     private final StudentRepository studentRepository;
     private final StaffRepository staffRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -314,5 +320,28 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                 .thenComparing(TimetableEntryDto::getStartTime));
 
         return timetable;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TimetableEntryDto> getMyTeacherTimetable(LocalDate startDate, LocalDate endDate) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return List.of();
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return List.of();
+        }
+
+        Long userId = user.getId();
+        Long staffId = staffRepository.findByUserId(userId).map(Staff::getId).orElse(null);
+        if (staffId == null) {
+            return List.of();
+        }
+
+        return getTeacherTimetable(staffId, startDate, endDate);
     }
 }

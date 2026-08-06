@@ -11,12 +11,23 @@ import com.lms.education.module.academic.repository.ClassesRepository;
 import com.lms.education.module.academic.repository.CourseRepository;
 import com.lms.education.module.academic.repository.TermRepository;
 import com.lms.education.module.academic.service.ClassesService;
+import com.lms.education.module.user.entity.Staff;
+import com.lms.education.module.user.entity.User;
+import com.lms.education.module.user.repository.StaffRepository;
+import com.lms.education.module.user.repository.UserRepository;
+import com.lms.education.module.teaching.repository.ScheduleAssignmentRepository;
+import com.lms.education.module.teaching.repository.TeachingAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +37,10 @@ public class ClassesServiceImpl implements ClassesService {
     private final ClassesRepository classesRepository;
     private final CourseRepository courseRepository;
     private final TermRepository termRepository;
+    private final UserRepository userRepository;
+    private final StaffRepository staffRepository;
+    private final ScheduleAssignmentRepository scheduleAssignmentRepository;
+    private final TeachingAssignmentRepository teachingAssignmentRepository;
 
     @Override
     @Transactional
@@ -139,6 +154,46 @@ public class ClassesServiceImpl implements ClassesService {
             classes = classesRepository.findAll(pageable);
         }
         return classes.map(this::mapToDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassesDto> getMyClasses() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return List.of();
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return List.of();
+        }
+
+        Long userId = user.getId();
+        Long staffId = staffRepository.findByUserId(userId).map(Staff::getId).orElse(null);
+
+        Set<Long> classIds = new HashSet<>();
+        if (staffId != null || userId != null) {
+            List<Long> scheduleClassIds = scheduleAssignmentRepository.findClassIdsByTeacher(userId, staffId);
+            classIds.addAll(scheduleClassIds);
+
+            if (staffId != null) {
+                teachingAssignmentRepository.findByTeacherId(staffId).forEach(ta -> {
+                    if (ta.getClasses() != null) {
+                        classIds.add(ta.getClasses().getId());
+                    }
+                });
+            }
+        }
+
+        if (classIds.isEmpty()) {
+            return List.of();
+        }
+
+        return classesRepository.findAllById(classIds).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     private ClassesDto mapToDto(Classes classes) {

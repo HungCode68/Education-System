@@ -1,12 +1,15 @@
 package com.lms.education.module.lms.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lms.education.annotation.LogActivity;
 import com.lms.education.module.lms.dto.QuestionDto;
 import com.lms.education.module.lms.dto.QuestionImportResultDto;
+import com.lms.education.module.lms.dto.QuestionOptionDto;
 import com.lms.education.module.lms.service.QuestionExcelService;
 import com.lms.education.module.lms.service.QuestionService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,19 +29,22 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/questions")
 @RequiredArgsConstructor
+@Slf4j
 public class QuestionController {
 
     private final QuestionService questionService;
     private final QuestionExcelService questionExcelService;
-
+    private final ObjectMapper objectMapper;
 
     @PostMapping
     @PreAuthorize("hasAuthority('LMS_QUESTION_CREATE')")
     @LogActivity(module = "LMS", action = "CREATE", targetType = "question", description = "Tạo mới câu hỏi trong ngân hàng câu hỏi")
     public ResponseEntity<Map<String, Object>> createQuestion(
-            @Valid @ModelAttribute QuestionDto dto,
+            @ModelAttribute QuestionDto dto,
+            @RequestParam(value = "optionsJson", required = false) String optionsJson,
             @RequestParam(value = "file", required = false) MultipartFile file) {
 
+        parseOptionsJsonIfNeeded(dto, optionsJson);
         QuestionDto created = questionService.create(dto, file);
 
         Map<String, Object> response = new HashMap<>();
@@ -54,8 +60,10 @@ public class QuestionController {
     public ResponseEntity<Map<String, Object>> updateQuestion(
             @PathVariable Long id,
             @ModelAttribute QuestionDto dto,
+            @RequestParam(value = "optionsJson", required = false) String optionsJson,
             @RequestParam(value = "file", required = false) MultipartFile file) {
 
+        parseOptionsJsonIfNeeded(dto, optionsJson);
         QuestionDto updated = questionService.update(id, dto, file);
 
         Map<String, Object> response = new HashMap<>();
@@ -63,6 +71,17 @@ public class QuestionController {
         response.put("data", updated);
 
         return ResponseEntity.ok(response);
+    }
+
+    private void parseOptionsJsonIfNeeded(QuestionDto dto, String optionsJson) {
+        if ((dto.getOptions() == null || dto.getOptions().isEmpty()) && optionsJson != null && !optionsJson.trim().isEmpty()) {
+            try {
+                List<QuestionOptionDto> options = objectMapper.readValue(optionsJson, new TypeReference<List<QuestionOptionDto>>() {});
+                dto.setOptions(options);
+            } catch (Exception e) {
+                log.warn("Không thể parse optionsJson: {}", e.getMessage());
+            }
+        }
     }
 
     @DeleteMapping("/{id}")
@@ -120,8 +139,10 @@ public class QuestionController {
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('LMS_QUESTION_CREATE')")
     @LogActivity(module = "LMS", action = "CREATE", targetType = "question", description = "Import hàng loạt câu hỏi từ file Excel")
-    public ResponseEntity<QuestionImportResultDto> importQuestions(@RequestParam("file") MultipartFile file) {
-        QuestionImportResultDto result = questionExcelService.importQuestionsFromExcel(file);
+    public ResponseEntity<QuestionImportResultDto> importQuestions(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "assignmentId", required = false) Long assignmentId) {
+        QuestionImportResultDto result = questionExcelService.importQuestionsFromExcel(file, assignmentId);
         HttpStatus status = result.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(result, status);
     }

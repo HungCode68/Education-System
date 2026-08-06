@@ -235,7 +235,7 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
 
         // Trường hợp người dùng tải file mới thay thế
         if (file != null && !file.isEmpty()) {
-            if ("MINIO".equalsIgnoreCase(existing.getSourceType())) {
+            if ("MINIO".equalsIgnoreCase(existing.getSourceType()) && existing.getResourceUrl() != null) {
                 minioStorageService.deleteFile(existing.getResourceUrl());
             }
 
@@ -243,8 +243,9 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
             existing.setSourceType("MINIO");
             existing.setResourceUrl(newObjectName);
             existing.setFileSize(file.getSize());
-        } else if (dto.getResourceUrl() != null && !dto.getResourceUrl().trim().isEmpty()) {
-            if ("MINIO".equalsIgnoreCase(existing.getSourceType())) {
+        } else if ("EXTERNAL".equalsIgnoreCase(dto.getSourceType()) && dto.getResourceUrl() != null && !dto.getResourceUrl().trim().isEmpty()) {
+            // Người dùng chủ động đổi sang dùng Đường dẫn liên kết ngoài (EXTERNAL)
+            if ("MINIO".equalsIgnoreCase(existing.getSourceType()) && existing.getResourceUrl() != null) {
                 minioStorageService.deleteFile(existing.getResourceUrl());
             }
             existing.setSourceType("EXTERNAL");

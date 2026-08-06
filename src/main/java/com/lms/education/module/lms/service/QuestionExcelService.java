@@ -8,4 +8,6 @@ public interface QuestionExcelService {
     byte[] generateQuestionImportTemplate();
 
     QuestionImportResultDto importQuestionsFromExcel(MultipartFile file);
+
+    QuestionImportResultDto importQuestionsFromExcel(MultipartFile file, Long assignmentId);
 }
