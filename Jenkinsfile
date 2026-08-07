@@ -70,6 +70,9 @@ pipeline {
                     -e APP_SECURITY_PASSWORD='${SECRET_APP_PASS}' \
                     -e JWT_COOKIE_SECURE=true \
                     -e JWT_COOKIE_SAMESITE=None \
+                    -e OLLAMA_BASE_URL='http://10.8.0.10:11434' \
+                    -e OLLAMA_MODEL='hf.co/Qwen/Qwen2.5-3B-Instruct-GGUF:Q4_K_M' \
+                    -e OLLAMA_EMBEDDING_MODEL='qllama/bge-m3:latest' \
                     -v /var/log/lms-backend:/logs \
                     ${DOCKER_IMAGE}:${DOCKER_TAG}
                 """
