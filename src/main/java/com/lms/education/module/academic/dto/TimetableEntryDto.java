@@ -33,5 +33,9 @@ public class TimetableEntryDto {
     private String teacherName;
     private String teacherCode;
     private String role; // MAIN_TEACHER, NATIVE_TEACHER, ASSISTANT, etc.
+    private Long assignmentId; // ID of the ScheduleAssignment
     private Boolean isSubstituted; // true if this session has a substitute teacher
+    
+    private String status; // NORMAL, CANCELLED
+    private String cancellationReason;
 }

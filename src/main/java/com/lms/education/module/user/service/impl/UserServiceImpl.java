@@ -6,6 +6,10 @@ import com.lms.education.module.user.entity.Role;
 import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.RoleRepository;
 import com.lms.education.module.user.repository.UserRepository;
+import com.lms.education.module.user.repository.StudentRepository;
+import com.lms.education.module.user.repository.StaffRepository;
+import com.lms.education.module.user.entity.Student;
+import com.lms.education.module.user.entity.Staff;
 import com.lms.education.module.user.service.UserService;
 import com.lms.education.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final StudentRepository studentRepository;
+    private final StaffRepository staffRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -150,7 +156,18 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + id));
 
-        user.setPassword(passwordEncoder.encode(newPassword));
+        String finalPassword = "123456";
+        Optional<Student> studentOpt = studentRepository.findByUserId(id);
+        if (studentOpt.isPresent()) {
+            finalPassword = studentOpt.get().getStudentCode().toUpperCase();
+        } else {
+            Optional<Staff> staffOpt = staffRepository.findByUserId(id);
+            if (staffOpt.isPresent()) {
+                finalPassword = staffOpt.get().getStaffCode().toUpperCase();
+            }
+        }
+
+        user.setPassword(passwordEncoder.encode(finalPassword));
         // Xóa refresh token hiện tại để buộc đăng nhập lại bằng mật khẩu mới trên mọi thiết bị
         user.setRefreshToken(null);
         user.setExpiryDate(null);
@@ -168,6 +185,35 @@ public class UserServiceImpl implements UserService {
                 .map(name -> roleRepository.findByName(name)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vai trò với tên: " + name)))
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + id));
+
+        // Hủy liên kết với Học viên (nếu có)
+        Optional<Student> studentOpt = studentRepository.findByUserId(id);
+        studentOpt.ifPresent(student -> {
+            student.setUser(null);
+            studentRepository.save(student);
+        });
+
+        // Hủy liên kết với Nhân sự (nếu có)
+        Optional<Staff> staffOpt = staffRepository.findByUserId(id);
+        staffOpt.ifPresent(staff -> {
+            staff.setUser(null);
+            staffRepository.save(staff);
+        });
+
+        // Xóa Refresh Token (nếu có)
+        user.setRefreshToken(null);
+        user.setExpiryDate(null);
+        userRepository.save(user);
+
+        // Xóa User khỏi DB (JPA tự động xóa bản ghi trong bảng user_roles)
+        userRepository.delete(user);
     }
 
     // Helper method để map Entity sang DTO

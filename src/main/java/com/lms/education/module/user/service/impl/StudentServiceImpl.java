@@ -63,6 +63,11 @@ public class StudentServiceImpl implements StudentService {
                 .fullName(dto.getFullName().trim())
                 .parentName(dto.getParentName() != null ? dto.getParentName().trim() : null)
                 .parentPhone(dto.getParentPhone())
+                .dateOfBirth(dto.getDateOfBirth())
+                .gender(dto.getGender())
+                .address(dto.getAddress())
+                .phone(dto.getPhone())
+                .identityNumber(dto.getIdentityNumber())
                 .targetScore(dto.getTargetScore())
                 .status(dto.getStatus() != null ? dto.getStatus().toUpperCase() : "STUDYING")
                 .build();
@@ -93,6 +98,11 @@ public class StudentServiceImpl implements StudentService {
         student.setFullName(dto.getFullName().trim());
         student.setParentName(dto.getParentName() != null ? dto.getParentName().trim() : null);
         student.setParentPhone(dto.getParentPhone());
+        student.setDateOfBirth(dto.getDateOfBirth());
+        student.setGender(dto.getGender());
+        student.setAddress(dto.getAddress());
+        student.setPhone(dto.getPhone());
+        student.setIdentityNumber(dto.getIdentityNumber());
         student.setTargetScore(dto.getTargetScore());
 
         // Cập nhật trạng thái
@@ -211,6 +221,11 @@ public class StudentServiceImpl implements StudentService {
                 .fullName(student.getFullName())
                 .parentName(student.getParentName())
                 .parentPhone(student.getParentPhone())
+                .dateOfBirth(student.getDateOfBirth())
+                .gender(student.getGender())
+                .address(student.getAddress())
+                .phone(student.getPhone())
+                .identityNumber(student.getIdentityNumber())
                 .targetScore(student.getTargetScore())
                 .status(student.getStatus())
                 .createdAt(student.getCreatedAt())

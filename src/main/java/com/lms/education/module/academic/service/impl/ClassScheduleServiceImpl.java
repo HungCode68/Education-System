@@ -10,7 +10,10 @@ import com.lms.education.module.academic.entity.Room;
 import com.lms.education.module.academic.repository.ClassScheduleRepository;
 import com.lms.education.module.academic.repository.ClassesRepository;
 import com.lms.education.module.academic.repository.RoomRepository;
+import com.lms.education.module.academic.repository.ScheduleCancellationRepository;
 import com.lms.education.module.academic.service.ClassScheduleService;
+import com.lms.education.module.academic.service.ClassesService;
+import com.lms.education.module.academic.entity.ScheduleCancellation;
 import com.lms.education.module.teaching.entity.ScheduleAssignment;
 import com.lms.education.module.teaching.entity.TeachingSubstitution;
 import com.lms.education.module.teaching.repository.ScheduleAssignmentRepository;
@@ -40,9 +43,11 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
 
     private final ClassScheduleRepository classScheduleRepository;
     private final ClassesRepository classesRepository;
+    private final ClassesService classesService;
     private final RoomRepository roomRepository;
     private final ScheduleAssignmentRepository scheduleAssignmentRepository;
     private final TeachingSubstitutionRepository teachingSubstitutionRepository;
+    private final ScheduleCancellationRepository scheduleCancellationRepository;
     private final StudentRepository studentRepository;
     private final StaffRepository staffRepository;
     private final UserRepository userRepository;
@@ -61,7 +66,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng học với ID: " + dto.getRoomId()));
         }
 
-        validateConflicts(dto.getClassId(), dto.getRoomId(), dto.getDayOfWeek(), dto.getStartTime(), dto.getEndTime(), null);
+        validateConflicts(dto.getClassId(), dto.getRoomId(), dto.getDayOfWeek(), dto.getStartTime(), dto.getEndTime(), classes.getStartDate(), classes.getEndDate(), null);
 
         ClassSchedule classSchedule = ClassSchedule.builder()
                 .classes(classes)
@@ -72,6 +77,10 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                 .build();
 
         ClassSchedule saved = classScheduleRepository.save(classSchedule);
+        
+        // Recalculate class end date
+        classesService.recalculateEndDate(classes.getId());
+        
         log.info("Đã tạo lịch học cho lớp: {} (Thứ {}, {}-{}) tại phòng: {}",
                 classes.getCode(), saved.getDayOfWeek(), saved.getStartTime(), saved.getEndTime(),
                 room != null ? room.getName() : "LMS/Online");
@@ -96,7 +105,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng học với ID: " + dto.getRoomId()));
         }
 
-        validateConflicts(dto.getClassId(), dto.getRoomId(), dto.getDayOfWeek(), dto.getStartTime(), dto.getEndTime(), id);
+        validateConflicts(dto.getClassId(), dto.getRoomId(), dto.getDayOfWeek(), dto.getStartTime(), dto.getEndTime(), classes.getStartDate(), classes.getEndDate(), id);
 
         classSchedule.setClasses(classes);
         classSchedule.setRoom(room);
@@ -105,6 +114,10 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         classSchedule.setEndTime(dto.getEndTime());
 
         ClassSchedule updated = classScheduleRepository.save(classSchedule);
+        
+        // Recalculate class end date
+        classesService.recalculateEndDate(classes.getId());
+        
         log.info("Đã cập nhật lịch học ID: {}", id);
 
         return mapToDto(updated);
@@ -115,8 +128,14 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     public void delete(Long id) {
         ClassSchedule classSchedule = classScheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + id));
+                
+        Long classId = classSchedule.getClasses().getId();
 
         classScheduleRepository.delete(classSchedule);
+        
+        // Recalculate class end date
+        classesService.recalculateEndDate(classId);
+        
         log.info("Đã xóa lịch học ID: {}", id);
     }
 
@@ -147,14 +166,14 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         }
     }
 
-    private void validateConflicts(Long classId, Long roomId, Integer dayOfWeek, java.time.LocalTime start, java.time.LocalTime end, Long excludeId) {
-        boolean isClassConflict = classScheduleRepository.existsClassConflict(classId, dayOfWeek, start, end, excludeId);
+    private void validateConflicts(Long classId, Long roomId, Integer dayOfWeek, java.time.LocalTime start, java.time.LocalTime end, LocalDate startDate, LocalDate endDate, Long excludeId) {
+        boolean isClassConflict = classScheduleRepository.existsClassConflict(classId, dayOfWeek, start, end, startDate, endDate, excludeId);
         if (isClassConflict) {
             throw new OperationNotPermittedException("Lớp học này đã có lịch học trùng với khoảng thời gian được chọn!");
         }
 
         if (roomId != null) {
-            boolean isRoomConflict = classScheduleRepository.existsRoomConflict(roomId, dayOfWeek, start, end, excludeId);
+            boolean isRoomConflict = classScheduleRepository.existsRoomConflict(roomId, dayOfWeek, start, end, startDate, endDate, excludeId);
             if (isRoomConflict) {
                 throw new OperationNotPermittedException("Phòng học này đã được sử dụng bởi một lớp học khác trong khoảng thời gian này!");
             }
@@ -218,6 +237,17 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                         isSubstituted = true;
                     }
 
+                    boolean isCancelled = false;
+                    String cancelReason = null;
+                    List<ScheduleCancellation> cancellations = scheduleCancellationRepository.findByClassIdOrCenterWide(schedule.getClasses().getId());
+                    for (ScheduleCancellation c : cancellations) {
+                        if (!finalDate.isBefore(c.getStartDate()) && !finalDate.isAfter(c.getEndDate())) {
+                            isCancelled = true;
+                            cancelReason = c.getReason();
+                            break;
+                        }
+                    }
+
                     timetable.add(TimetableEntryDto.builder()
                             .scheduleId(schedule.getId())
                             .classId(schedule.getClasses().getId())
@@ -231,7 +261,10 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                             .teacherName(teacherName)
                             .teacherCode(teacherCode)
                             .role(role)
+                            .assignmentId(mainAssignment != null ? mainAssignment.getId() : null)
                             .isSubstituted(isSubstituted)
+                            .status(isCancelled ? "CANCELLED" : "NORMAL")
+                            .cancellationReason(cancelReason)
                             .build());
                 }
             }
@@ -266,6 +299,17 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                                     ts.getAbsentStaff().getId().equals(teacherId) &&
                                     !finalDate.isBefore(ts.getStartDate()) && !finalDate.isAfter(ts.getEndDate()));
 
+                    boolean isCancelled = false;
+                    String cancelReason = null;
+                    List<ScheduleCancellation> cancellations = scheduleCancellationRepository.findByClassIdOrCenterWide(schedule.getClasses().getId());
+                    for (ScheduleCancellation c : cancellations) {
+                        if (!finalDate.isBefore(c.getStartDate()) && !finalDate.isAfter(c.getEndDate())) {
+                            isCancelled = true;
+                            cancelReason = c.getReason();
+                            break;
+                        }
+                    }
+
                     if (!isAbsent) {
                         timetable.add(TimetableEntryDto.builder()
                                 .scheduleId(schedule.getId())
@@ -281,6 +325,8 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                                 .teacherCode(assignment.getTeacher().getStaffCode())
                                 .role(assignment.getRole())
                                 .isSubstituted(false)
+                                .status(isCancelled ? "CANCELLED" : "NORMAL")
+                                .cancellationReason(cancelReason)
                                 .build());
                     }
                 }
@@ -296,6 +342,18 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                     if (schedule.getDayOfWeek() == systemDayOfWeek &&
                             !date.isBefore(sub.getStartDate()) && !date.isAfter(sub.getEndDate())) {
 
+                        boolean isCancelled = false;
+                        String cancelReason = null;
+                        List<ScheduleCancellation> cancellations = scheduleCancellationRepository.findByClassIdOrCenterWide(schedule.getClasses().getId());
+                        LocalDate finalDate = date;
+                        for (ScheduleCancellation c : cancellations) {
+                            if (!finalDate.isBefore(c.getStartDate()) && !finalDate.isAfter(c.getEndDate())) {
+                                isCancelled = true;
+                                cancelReason = c.getReason();
+                                break;
+                            }
+                        }
+
                         timetable.add(TimetableEntryDto.builder()
                                 .scheduleId(schedule.getId())
                                 .classId(schedule.getClasses().getId())
@@ -310,6 +368,8 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                                 .teacherCode(sub.getSubstituteStaff().getStaffCode())
                                 .role("SUBSTITUTE_TEACHER")
                                 .isSubstituted(true)
+                                .status(isCancelled ? "CANCELLED" : "NORMAL")
+                                .cancellationReason(cancelReason)
                                 .build());
                     }
                 }
@@ -343,5 +403,87 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         }
 
         return getTeacherTimetable(staffId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TimetableEntryDto> getTimetable(LocalDate startDate, LocalDate endDate, Long classId) {
+        List<ClassSchedule> schedules;
+        if (classId != null) {
+            schedules = classScheduleRepository.findByClassesId(classId);
+        } else {
+            schedules = classScheduleRepository.findAll();
+        }
+        
+        List<TimetableEntryDto> timetable = new ArrayList<>();
+
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            int systemDayOfWeek = date.getDayOfWeek().getValue() + 1;
+
+            for (ClassSchedule schedule : schedules) {
+                if (schedule.getDayOfWeek() == systemDayOfWeek) {
+                    List<ScheduleAssignment> assignments = scheduleAssignmentRepository.findByScheduleId(schedule.getId());
+                    ScheduleAssignment mainAssignment = assignments.stream()
+                            .filter(sa -> "MAIN_TEACHER".equalsIgnoreCase(sa.getRole()))
+                            .findFirst()
+                            .orElse(assignments.isEmpty() ? null : assignments.get(0));
+
+                    Long teacherId = mainAssignment != null ? mainAssignment.getTeacher().getId() : null;
+                    String teacherName = mainAssignment != null ? mainAssignment.getTeacher().getFullName() : null;
+                    String teacherCode = mainAssignment != null ? mainAssignment.getTeacher().getStaffCode() : null;
+                    String role = mainAssignment != null ? mainAssignment.getRole() : null;
+                    Long assignmentId = mainAssignment != null ? mainAssignment.getId() : null;
+                    boolean isSubstituted = false;
+
+                    List<TeachingSubstitution> substitutions = teachingSubstitutionRepository.findByScheduleId(schedule.getId());
+                    LocalDate finalDate = date;
+                    TeachingSubstitution substitution = substitutions.stream()
+                            .filter(ts -> "APPROVED".equalsIgnoreCase(ts.getStatus()) &&
+                                    !finalDate.isBefore(ts.getStartDate()) && !finalDate.isAfter(ts.getEndDate()))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (substitution != null) {
+                        teacherId = substitution.getSubstituteStaff().getId();
+                        teacherName = substitution.getSubstituteStaff().getFullName();
+                        teacherCode = substitution.getSubstituteStaff().getStaffCode();
+                        role = "SUBSTITUTE_TEACHER";
+                        isSubstituted = true;
+                    }
+
+                    boolean isCancelled = false;
+                    String cancelReason = null;
+                    List<ScheduleCancellation> cancellations = scheduleCancellationRepository.findByClassIdOrCenterWide(schedule.getClasses().getId());
+                    for (ScheduleCancellation c : cancellations) {
+                        if (!finalDate.isBefore(c.getStartDate()) && !finalDate.isAfter(c.getEndDate())) {
+                            isCancelled = true;
+                            cancelReason = c.getReason();
+                            break;
+                        }
+                    }
+
+                    timetable.add(TimetableEntryDto.builder()
+                            .scheduleId(schedule.getId())
+                            .classId(schedule.getClasses().getId())
+                            .classCode(schedule.getClasses().getCode())
+                            .className(schedule.getClasses().getName())
+                            .roomName(schedule.getRoom() != null ? schedule.getRoom().getName() : "LMS/Online")
+                            .date(date)
+                            .startTime(schedule.getStartTime())
+                            .endTime(schedule.getEndTime())
+                            .teacherId(teacherId)
+                            .teacherName(teacherName)
+                            .teacherCode(teacherCode)
+                            .role(role)
+                            .assignmentId(assignmentId)
+                            .isSubstituted(isSubstituted)
+                            .status(isCancelled ? "CANCELLED" : "NORMAL")
+                            .cancellationReason(cancelReason)
+                            .build());
+                }
+            }
+        }
+
+        return timetable;
     }
 }

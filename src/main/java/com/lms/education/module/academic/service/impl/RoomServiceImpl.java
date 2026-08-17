@@ -4,7 +4,11 @@ import com.lms.education.exception.DuplicateResourceException;
 import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.academic.dto.RoomDto;
 import com.lms.education.module.academic.entity.Room;
+import com.lms.education.module.academic.repository.ClassScheduleRepository;
+import com.lms.education.module.academic.repository.ClassesRepository;
 import com.lms.education.module.academic.repository.RoomRepository;
+import com.lms.education.module.academic.entity.Classes;
+import com.lms.education.exception.OperationNotPermittedException;
 import com.lms.education.module.academic.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,12 +17,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository;
+    private final ClassesRepository classesRepository;
+    private final ClassScheduleRepository classScheduleRepository;
 
     @Override
     @Transactional
@@ -31,7 +41,6 @@ public class RoomServiceImpl implements RoomService {
 
         Room room = Room.builder()
                 .name(formattedName)
-                .roomType(dto.getRoomType() != null ? dto.getRoomType().toUpperCase() : "PHYSICAL")
                 .capacity(dto.getCapacity() != null ? dto.getCapacity() : 30) // Giá trị mặc định 30 chỗ
                 .build();
 
@@ -56,10 +65,6 @@ public class RoomServiceImpl implements RoomService {
 
         room.setName(newFormattedName);
 
-        if (dto.getRoomType() != null && !dto.getRoomType().trim().isEmpty()) {
-            room.setRoomType(dto.getRoomType().toUpperCase());
-        }
-
         if (dto.getCapacity() != null) {
             room.setCapacity(dto.getCapacity());
         }
@@ -76,10 +81,9 @@ public class RoomServiceImpl implements RoomService {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng học với ID: " + id));
 
-        /* * LƯU Ý MỞ RỘNG TƯƠNG LAI:
-         * Khi có bảng Classes hoặc Schedules, bạn sẽ cần check xem phòng này có
-         * đang được xếp lịch cho lớp học nào không. Nếu có thì chặn xóa.
-         */
+        if (classScheduleRepository.existsByRoomId(id)) {
+            throw new OperationNotPermittedException("Không thể xóa phòng học này vì đang được sử dụng trong các ca lịch học!");
+        }
 
         roomRepository.delete(room);
         log.info("Đã xóa hoàn toàn phòng học ID: {}", id);
@@ -105,12 +109,24 @@ public class RoomServiceImpl implements RoomService {
         return rooms.map(this::mapToDto);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoomDto> getAvailableRooms(Long classId, Integer dayOfWeek, LocalTime startTime, LocalTime endTime, Long excludeScheduleId) {
+        Classes classes = classesRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học với ID: " + classId));
+                
+        List<Room> availableRooms = roomRepository.findAvailableRooms(
+                dayOfWeek, startTime, endTime, 
+                classes.getStartDate(), classes.getEndDate(), excludeScheduleId);
+                
+        return availableRooms.stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
     // --- Helper Method ---
     private RoomDto mapToDto(Room room) {
         return RoomDto.builder()
                 .id(room.getId())
                 .name(room.getName())
-                .roomType(room.getRoomType())
                 .capacity(room.getCapacity())
                 .createdAt(room.getCreatedAt())
                 .build();

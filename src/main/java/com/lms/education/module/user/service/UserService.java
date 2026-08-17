@@ -29,6 +29,9 @@ public interface UserService {
 
     UserDto getUserById(Long id);
 
+    // Xóa/Thu hồi tài khoản
+    void deleteUser(Long id);
+
     // Lấy danh sách tài khoản có hỗ trợ tìm kiếm từ khóa (email/fullName) và phân trang
     Page<UserDto> getAllUsers(String keyword, Pageable pageable);
 

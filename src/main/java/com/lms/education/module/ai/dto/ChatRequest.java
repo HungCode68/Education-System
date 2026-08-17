@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ChatRequest {
 
-    @NotNull(message = "studentId cannot be null")
+    // Optional, if null it means the user is not a student (e.g., Staff/Admin)
     private Long studentId;
 
     // Optional, if null, a new session is created

@@ -72,6 +72,24 @@ public class ReportCenterStatistics {
     @Builder.Default
     private Integer classesClosedToday = 0;
 
+    @Column(name = "new_student_ids", columnDefinition = "JSON")
+    private String newStudentIds;
+
+    @Column(name = "dropped_student_ids", columnDefinition = "JSON")
+    private String droppedStudentIds;
+
+    @Column(name = "new_teacher_ids", columnDefinition = "JSON")
+    private String newTeacherIds;
+
+    @Column(name = "resigned_teacher_ids", columnDefinition = "JSON")
+    private String resignedTeacherIds;
+
+    @Column(name = "new_class_ids", columnDefinition = "JSON")
+    private String newClassIds;
+
+    @Column(name = "closed_class_ids", columnDefinition = "JSON")
+    private String closedClassIds;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

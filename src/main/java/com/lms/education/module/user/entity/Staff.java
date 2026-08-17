@@ -5,6 +5,7 @@ import com.lms.education.module.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -39,6 +40,9 @@ public class Staff {
     @Column(name = "staff_type", nullable = false, length = 50)
     private String staffType;
 
+    @Column(name = "job_title", length = 150, columnDefinition = "NVARCHAR(150)")
+    private String jobTitle;
+
     @Column(name = "full_name", nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String fullName;
 
@@ -58,7 +62,26 @@ public class Staff {
     @Column(nullable = false, length = 50)
     private String status;
 
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(length = 20, columnDefinition = "NVARCHAR(20)")
+    private String gender;
+
+    @Column(length = 500, columnDefinition = "NVARCHAR(500)")
+    private String address;
+
+    @Column(length = 50)
+    private String nationality;
+
+    @Column(name = "identity_number", length = 50)
+    private String identityNumber;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

@@ -105,4 +105,14 @@ public class ClassScheduleController {
 
         return ResponseEntity.ok(classScheduleService.getMyTeacherTimetable(startDate, endDate));
     }
+
+    @GetMapping("/timetable")
+    @PreAuthorize("hasAuthority('SCHEDULE_VIEW')")
+    public ResponseEntity<List<TimetableEntryDto>> getCenterTimetable(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long classId) {
+
+        return ResponseEntity.ok(classScheduleService.getTimetable(startDate, endDate, classId));
+    }
 }

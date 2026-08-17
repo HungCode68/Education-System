@@ -15,4 +15,6 @@ public interface RoomService {
     RoomDto getById(Long id);
 
     Page<RoomDto> getAllRooms(String keyword, Pageable pageable);
+
+    java.util.List<RoomDto> getAvailableRooms(Long classId, Integer dayOfWeek, java.time.LocalTime startTime, java.time.LocalTime endTime, Long excludeScheduleId);
 }

@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -43,7 +46,26 @@ public class Student {
     @Column(nullable = false, length = 50)
     private String status; // STUDYING, RESERVED, GRADUATED, DROPPED
 
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(length = 20, columnDefinition = "NVARCHAR(20)")
+    private String gender;
+
+    @Column(length = 500, columnDefinition = "NVARCHAR(500)")
+    private String address;
+
+    @Column(length = 20)
+    private String phone;
+
+    @Column(name = "identity_number", length = 50)
+    private String identityNumber;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

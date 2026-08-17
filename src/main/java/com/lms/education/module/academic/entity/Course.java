@@ -36,6 +36,12 @@ public class Course {
     @Column(name = "duration_hours")
     private Integer durationHours;
 
+    @Column(name = "total_sessions")
+    private Integer totalSessions;
+
+    @Column(name = "sessions_per_week")
+    private Integer sessionsPerWeek;
+
     @Column(name = "base_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal basePrice;
 

@@ -79,8 +79,14 @@ public class StaffServiceImpl implements StaffService {
                 .department(department)
                 .staffCode(generatedStaffCode)
                 .staffType(dto.getStaffType().toUpperCase())
+                .jobTitle(dto.getJobTitle() != null ? dto.getJobTitle().trim() : null)
                 .fullName(dto.getFullName().trim())
                 .phone(dto.getPhone())
+                .dateOfBirth(dto.getDateOfBirth())
+                .gender(dto.getGender())
+                .address(dto.getAddress())
+                .nationality(dto.getNationality() != null ? dto.getNationality() : "Vietnam")
+                .identityNumber(dto.getIdentityNumber())
                 .hireDate(dto.getHireDate())
                 .contractType(dto.getContractType() != null ? dto.getContractType().toUpperCase() : null)
                 .baseSalary(dto.getBaseSalary())
@@ -120,8 +126,14 @@ public class StaffServiceImpl implements StaffService {
 
         // Cập nhật các trường thông tin cơ bản
         staff.setStaffType(dto.getStaffType().toUpperCase());
+        staff.setJobTitle(dto.getJobTitle() != null ? dto.getJobTitle().trim() : null);
         staff.setFullName(dto.getFullName().trim());
         staff.setPhone(dto.getPhone());
+        staff.setDateOfBirth(dto.getDateOfBirth());
+        staff.setGender(dto.getGender());
+        staff.setAddress(dto.getAddress());
+        staff.setNationality(dto.getNationality() != null ? dto.getNationality() : "Vietnam");
+        staff.setIdentityNumber(dto.getIdentityNumber());
         staff.setHireDate(dto.getHireDate());
         staff.setContractType(dto.getContractType() != null ? dto.getContractType().toUpperCase() : null);
         staff.setBaseSalary(dto.getBaseSalary());
@@ -192,7 +204,7 @@ public class StaffServiceImpl implements StaffService {
     @Override
     @Transactional(readOnly = true)
     public List<StaffDto> getTeachers() {
-        List<Staff> teachers = staffRepository.findByStaffTypeContainingIgnoreCase("TEACHER");
+        List<Staff> teachers = staffRepository.findTeachers();
         return teachers.stream().map(this::mapToDto).collect(java.util.stream.Collectors.toList());
     }
 
@@ -272,8 +284,14 @@ public class StaffServiceImpl implements StaffService {
                 .departmentName(staff.getDepartment() != null ? staff.getDepartment().getName() : null) // Lấy Tên Khoa
                 .staffCode(staff.getStaffCode())
                 .staffType(staff.getStaffType())
+                .jobTitle(staff.getJobTitle())
                 .fullName(staff.getFullName())
                 .phone(staff.getPhone())
+                .dateOfBirth(staff.getDateOfBirth())
+                .gender(staff.getGender())
+                .address(staff.getAddress())
+                .nationality(staff.getNationality())
+                .identityNumber(staff.getIdentityNumber())
                 .hireDate(staff.getHireDate())
                 .contractType(staff.getContractType())
                 .baseSalary(staff.getBaseSalary())

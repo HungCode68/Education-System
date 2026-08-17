@@ -28,6 +28,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -40,6 +43,7 @@ public class ReportCenterStatisticsServiceImpl implements ReportCenterStatistics
     private final ClassesRepository classesRepository;
     private final ReportClassMetricsService classMetricsService;
     private final EnrollmentRepository enrollmentRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -52,25 +56,29 @@ public class ReportCenterStatisticsServiceImpl implements ReportCenterStatistics
                 .filter(s -> "STUDYING".equalsIgnoreCase(s.getStatus()))
                 .count();
 
-        int newStudentsToday = (int) allStudents.stream()
+        List<Student> newStudentsList = allStudents.stream()
                 .filter(s -> s.getCreatedAt() != null && targetDate.equals(s.getCreatedAt().toLocalDate()))
-                .count();
+                .collect(Collectors.toList());
+        int newStudentsToday = newStudentsList.size();
+        List<Long> newStudentIds = newStudentsList.stream().map(Student::getId).collect(Collectors.toList());
 
-        List<Enrollment> allEnrollments = enrollmentRepository.findAll();
-        int droppedStudentsToday = (int) allEnrollments.stream()
-                .filter(e -> "DROPPED".equalsIgnoreCase(e.getStatus()) &&
-                        ((e.getUpdatedAt() != null && targetDate.equals(e.getUpdatedAt().toLocalDate())) ||
-                         (e.getUpdatedAt() == null && e.getEnrollmentDate() != null && targetDate.equals(e.getEnrollmentDate()))))
-                .count();
+        List<Student> droppedStudentsList = allStudents.stream()
+                .filter(s -> "DROPPED".equalsIgnoreCase(s.getStatus()) &&
+                        (s.getUpdatedAt() != null && targetDate.equals(s.getUpdatedAt().toLocalDate())))
+                .collect(Collectors.toList());
+        int droppedStudentsToday = droppedStudentsList.size();
+        List<Long> droppedStudentIds = droppedStudentsList.stream().map(Student::getId).collect(Collectors.toList());
 
         List<Staff> allStaff = staffRepository.findAll();
         int totalTeachers = (int) allStaff.stream()
                 .filter(s -> "TEACHER".equalsIgnoreCase(s.getStaffType()))
                 .count();
 
-        int newTeachersToday = (int) allStaff.stream()
+        List<Staff> newTeachersList = allStaff.stream()
                 .filter(s -> "TEACHER".equalsIgnoreCase(s.getStaffType()) && targetDate.equals(s.getHireDate()))
-                .count();
+                .collect(Collectors.toList());
+        int newTeachersToday = newTeachersList.size();
+        List<Long> newTeacherIds = newTeachersList.stream().map(Staff::getId).collect(Collectors.toList());
 
         int totalOtherStaffs = (int) allStaff.stream()
                 .filter(s -> s.getStaffType() == null || !"TEACHER".equalsIgnoreCase(s.getStaffType()))
@@ -80,6 +88,24 @@ public class ReportCenterStatisticsServiceImpl implements ReportCenterStatistics
                 .filter(s -> (s.getStaffType() == null || !"TEACHER".equalsIgnoreCase(s.getStaffType())) && targetDate.equals(s.getHireDate()))
                 .count();
 
+        // Tính toán giảng viên nghỉ việc hôm nay
+        List<Staff> resignedTeacherList = allStaff.stream()
+                .filter(s -> "TEACHER".equalsIgnoreCase(s.getStaffType()) &&
+                        "RESIGNED".equalsIgnoreCase(s.getStatus()) &&
+                        (s.getUpdatedAt() != null && targetDate.equals(s.getUpdatedAt().toLocalDate())))
+                .collect(Collectors.toList());
+        int resignedTeachersToday = resignedTeacherList.size();
+        List<Long> resignedTeacherIds = resignedTeacherList.stream().map(Staff::getId).collect(Collectors.toList());
+
+        // Tính toán nhân viên nghỉ việc hôm nay
+        List<Staff> resignedStaffList = allStaff.stream()
+                .filter(s -> (s.getStaffType() == null || !"TEACHER".equalsIgnoreCase(s.getStaffType())) &&
+                        "RESIGNED".equalsIgnoreCase(s.getStatus()) &&
+                        (s.getUpdatedAt() != null && targetDate.equals(s.getUpdatedAt().toLocalDate())))
+                .collect(Collectors.toList());
+        int resignedStaffsToday = resignedStaffList.size();
+        List<Long> resignedStaffIds = resignedStaffList.stream().map(Staff::getId).collect(Collectors.toList());
+
         int totalCourses = (int) courseRepository.count();
 
         List<Classes> allClasses = classesRepository.findAll();
@@ -87,15 +113,19 @@ public class ReportCenterStatisticsServiceImpl implements ReportCenterStatistics
                 .filter(c -> "ONGOING".equalsIgnoreCase(c.getStatus()) || "OPENING".equalsIgnoreCase(c.getStatus()))
                 .count();
 
-        int newClassesOpened = (int) allClasses.stream()
+        List<Classes> newClassesList = allClasses.stream()
                 .filter(c -> targetDate.equals(c.getStartDate()) ||
                         (c.getStartDate() == null && c.getCreatedAt() != null && targetDate.equals(c.getCreatedAt().toLocalDate())))
-                .count();
+                .collect(Collectors.toList());
+        int newClassesOpened = newClassesList.size();
+        List<Long> newClassIds = newClassesList.stream().map(Classes::getId).collect(Collectors.toList());
 
-        int classesClosedToday = (int) allClasses.stream()
+        List<Classes> closedClassesList = allClasses.stream()
                 .filter(c -> targetDate.equals(c.getEndDate()) ||
                         (c.getEndDate() == null && "CLOSED".equalsIgnoreCase(c.getStatus()) && c.getUpdatedAt() != null && targetDate.equals(c.getUpdatedAt().toLocalDate())))
-                .count();
+                .collect(Collectors.toList());
+        int classesClosedToday = closedClassesList.size();
+        List<Long> closedClassIds = closedClassesList.stream().map(Classes::getId).collect(Collectors.toList());
 
         ReportCenterStatistics entity = reportRepository.findById(targetDate)
                 .orElse(ReportCenterStatistics.builder().reportDate(targetDate).build());
@@ -105,14 +135,25 @@ public class ReportCenterStatisticsServiceImpl implements ReportCenterStatistics
         entity.setDroppedStudentsToday(droppedStudentsToday);
         entity.setTotalTeachers(totalTeachers);
         entity.setNewTeachersToday(newTeachersToday);
-        entity.setResignedTeachersToday(0);
+        entity.setResignedTeachersToday(resignedTeachersToday);
         entity.setTotalOtherStaffs(totalOtherStaffs);
         entity.setNewStaffsToday(newStaffsToday);
-        entity.setResignedStaffsToday(0);
+        entity.setResignedStaffsToday(resignedStaffsToday);
         entity.setTotalCourses(totalCourses);
         entity.setTotalActiveClasses(totalActiveClasses);
         entity.setNewClassesOpened(newClassesOpened);
         entity.setClassesClosedToday(classesClosedToday);
+
+        try {
+            entity.setNewStudentIds(objectMapper.writeValueAsString(newStudentIds));
+            entity.setDroppedStudentIds(objectMapper.writeValueAsString(droppedStudentIds));
+            entity.setNewTeacherIds(objectMapper.writeValueAsString(newTeacherIds));
+            entity.setResignedTeacherIds(objectMapper.writeValueAsString(resignedTeacherIds));
+            entity.setNewClassIds(objectMapper.writeValueAsString(newClassIds));
+            entity.setClosedClassIds(objectMapper.writeValueAsString(closedClassIds));
+        } catch (Exception e) {
+            log.error("Lỗi khi serialize mảng ID JSON", e);
+        }
 
         ReportCenterStatistics saved = reportRepository.save(entity);
         log.info("Đã đồng bộ/tái chốt báo cáo thành công cho ngày: {}", targetDate);
@@ -283,6 +324,12 @@ public class ReportCenterStatisticsServiceImpl implements ReportCenterStatistics
                 .totalActiveClasses(centerReport.getTotalActiveClasses())
                 .newClassesOpened(centerReport.getNewClassesOpened())
                 .classesClosedToday(centerReport.getClassesClosedToday())
+                .newStudentIds(centerReport.getNewStudentIds())
+                .droppedStudentIds(centerReport.getDroppedStudentIds())
+                .newTeacherIds(centerReport.getNewTeacherIds())
+                .resignedTeacherIds(centerReport.getResignedTeacherIds())
+                .newClassIds(centerReport.getNewClassIds())
+                .closedClassIds(centerReport.getClosedClassIds())
                 .build();
 
         List<ReportClassMetricsDto> classMetricsList = classMetricsService.getAllClassesMetrics();
@@ -294,7 +341,7 @@ public class ReportCenterStatisticsServiceImpl implements ReportCenterStatistics
     }
 
     private ReportCenterStatisticsDto toDto(ReportCenterStatistics entity) {
-        return ReportCenterStatisticsDto.builder()
+        ReportCenterStatisticsDto dto = ReportCenterStatisticsDto.builder()
                 .reportDate(entity.getReportDate())
                 .totalActiveStudents(entity.getTotalActiveStudents())
                 .newStudentsToday(entity.getNewStudentsToday())
@@ -311,5 +358,18 @@ public class ReportCenterStatisticsServiceImpl implements ReportCenterStatistics
                 .classesClosedToday(entity.getClassesClosedToday())
                 .createdAt(entity.getCreatedAt())
                 .build();
+
+        try {
+            if (entity.getNewStudentIds() != null) dto.setNewStudentIds(objectMapper.readValue(entity.getNewStudentIds(), new TypeReference<List<Long>>() {}));
+            if (entity.getDroppedStudentIds() != null) dto.setDroppedStudentIds(objectMapper.readValue(entity.getDroppedStudentIds(), new TypeReference<List<Long>>() {}));
+            if (entity.getNewTeacherIds() != null) dto.setNewTeacherIds(objectMapper.readValue(entity.getNewTeacherIds(), new TypeReference<List<Long>>() {}));
+            if (entity.getResignedTeacherIds() != null) dto.setResignedTeacherIds(objectMapper.readValue(entity.getResignedTeacherIds(), new TypeReference<List<Long>>() {}));
+            if (entity.getNewClassIds() != null) dto.setNewClassIds(objectMapper.readValue(entity.getNewClassIds(), new TypeReference<List<Long>>() {}));
+            if (entity.getClosedClassIds() != null) dto.setClosedClassIds(objectMapper.readValue(entity.getClosedClassIds(), new TypeReference<List<Long>>() {}));
+        } catch (Exception e) {
+            log.warn("Lỗi khi parse mảng ID JSON trong toDto", e);
+        }
+
+        return dto;
     }
 }

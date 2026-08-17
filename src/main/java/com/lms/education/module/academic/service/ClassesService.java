@@ -17,4 +17,8 @@ public interface ClassesService {
     Page<ClassesDto> getAllClasses(String keyword, Pageable pageable);
 
     java.util.List<ClassesDto> getMyClasses();
+    
+    void recalculateEndDate(Long classId);
+    
+    void recalculateAllActiveClasses();
 }

@@ -33,6 +33,12 @@ public class CourseDto {
     @PositiveOrZero(message = "Thời lượng khóa học (giờ) phải lớn hơn hoặc bằng 0")
     private Integer durationHours;
 
+    @PositiveOrZero(message = "Tổng số buổi học phải lớn hơn hoặc bằng 0")
+    private Integer totalSessions;
+    
+    @PositiveOrZero(message = "Số buổi học mỗi tuần phải lớn hơn 0")
+    private Integer sessionsPerWeek;
+
     @PositiveOrZero(message = "Giá khóa học phải lớn hơn hoặc bằng 0")
     private BigDecimal basePrice;
 

@@ -7,10 +7,14 @@ import com.lms.education.module.academic.dto.ClassesDto;
 import com.lms.education.module.academic.entity.Classes;
 import com.lms.education.module.academic.entity.Course;
 import com.lms.education.module.academic.entity.Term;
+import com.lms.education.module.academic.repository.ClassScheduleRepository;
+import com.lms.education.module.academic.repository.ScheduleCancellationRepository;
 import com.lms.education.module.academic.repository.ClassesRepository;
 import com.lms.education.module.academic.repository.CourseRepository;
 import com.lms.education.module.academic.repository.TermRepository;
 import com.lms.education.module.academic.service.ClassesService;
+import com.lms.education.module.academic.entity.ClassSchedule;
+import com.lms.education.module.academic.entity.ScheduleCancellation;
 import com.lms.education.module.user.entity.Staff;
 import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.StaffRepository;
@@ -26,6 +30,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,6 +46,8 @@ public class ClassesServiceImpl implements ClassesService {
     private final StaffRepository staffRepository;
     private final ScheduleAssignmentRepository scheduleAssignmentRepository;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
+    private final ClassScheduleRepository classScheduleRepository;
+    private final ScheduleCancellationRepository scheduleCancellationRepository;
 
     @Override
     @Transactional
@@ -75,6 +82,11 @@ public class ClassesServiceImpl implements ClassesService {
                 .currentStudents(0)
                 .status(dto.getStatus() != null ? dto.getStatus().trim().toUpperCase() : "OPENING")
                 .build();
+                
+        LocalDate estimatedEndDate = calculateExactEndDate(classes);
+        if (estimatedEndDate != null) {
+            classes.setEndDate(estimatedEndDate);
+        }
 
         Classes savedClass = classesRepository.save(classes);
         log.info("Đã tạo mới lớp học: {} (Mã: {})", savedClass.getName(), savedClass.getCode());
@@ -112,7 +124,12 @@ public class ClassesServiceImpl implements ClassesService {
         classes.setCourse(course);
         classes.setTerm(term);
         classes.setStartDate(dto.getStartDate());
-        classes.setEndDate(dto.getEndDate());
+        // Do not set endDate from DTO. Recalculate it.
+        LocalDate preciseEndDate = calculateExactEndDate(classes);
+        if (preciseEndDate != null) {
+            classes.setEndDate(preciseEndDate);
+        }
+        
         if (dto.getMaxStudents() != null) {
             classes.setMaxStudents(dto.getMaxStudents());
         }
@@ -194,6 +211,85 @@ public class ClassesServiceImpl implements ClassesService {
         return classesRepository.findAllById(classIds).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional
+    public void recalculateEndDate(Long classId) {
+        Classes classes = classesRepository.findById(classId).orElse(null);
+        if (classes == null) return;
+        
+        LocalDate newEndDate = calculateExactEndDate(classes);
+        if (newEndDate != null) {
+            classes.setEndDate(newEndDate);
+            classesRepository.save(classes);
+        }
+    }
+    
+    @Override
+    @Transactional
+    public void recalculateAllActiveClasses() {
+        List<Classes> activeClasses = classesRepository.findAll();
+        for (Classes classes : activeClasses) {
+            if (!"CLOSED".equals(classes.getStatus()) && !"COMPLETED".equals(classes.getStatus())) {
+                LocalDate newEndDate = calculateExactEndDate(classes);
+                if (newEndDate != null) {
+                    classes.setEndDate(newEndDate);
+                    classesRepository.save(classes);
+                }
+            }
+        }
+    }
+    
+    private LocalDate calculateExactEndDate(Classes classes) {
+        if (classes.getStartDate() == null || classes.getCourse() == null || classes.getCourse().getTotalSessions() == null) {
+            return classes.getEndDate(); // Fallback
+        }
+        
+        int totalSessions = classes.getCourse().getTotalSessions();
+        int sessionsPerWeek = classes.getCourse().getSessionsPerWeek() != null ? classes.getCourse().getSessionsPerWeek() : 0;
+        
+        List<ClassSchedule> schedules = classes.getId() != null ? classScheduleRepository.findByClassesId(classes.getId()) : Collections.emptyList();
+        if (schedules.isEmpty()) {
+            // Rough estimation
+            if (sessionsPerWeek > 0) {
+                int weeks = (int) Math.ceil((double) totalSessions / sessionsPerWeek);
+                return classes.getStartDate().plusWeeks(weeks);
+            }
+            return classes.getEndDate();
+        }
+        
+        // Exact calculation
+        Set<Integer> validDaysOfWeek = schedules.stream()
+                .map(ClassSchedule::getDayOfWeek)
+                .collect(Collectors.toSet());
+                
+        List<ScheduleCancellation> cancellations = scheduleCancellationRepository.findByClassIdOrCenterWide(classes.getId());
+        
+        int countedSessions = 0;
+        LocalDate currentDate = classes.getStartDate();
+        LocalDate limitDate = classes.getStartDate().plusYears(5); // safety limit
+        
+        while (countedSessions < totalSessions && currentDate.isBefore(limitDate)) {
+            int currentDayOfWeek = currentDate.getDayOfWeek().getValue() + 1; // 1=Mon->2, 7=Sun->8
+            
+            if (validDaysOfWeek.contains(currentDayOfWeek)) {
+                LocalDate finalCurrentDate = currentDate;
+                boolean isCancelled = cancellations.stream().anyMatch(c -> 
+                    !finalCurrentDate.isBefore(c.getStartDate()) && !finalCurrentDate.isAfter(c.getEndDate())
+                );
+                
+                if (!isCancelled) {
+                    countedSessions++;
+                }
+            }
+            
+            if (countedSessions < totalSessions) {
+                currentDate = currentDate.plusDays(1);
+            }
+        }
+        
+        return currentDate;
     }
 
     private ClassesDto mapToDto(Classes classes) {

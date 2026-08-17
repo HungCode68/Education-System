@@ -20,6 +20,10 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
     // Kiểm tra xem User này đã có hồ sơ nhân sự chưa (Quan hệ 1-1)
     boolean existsByUserId(Long userId);
 
+    // Lấy danh sách giảng viên (Dựa trên phân loại hệ thống staffType)
+    @Query("SELECT s FROM Staff s WHERE UPPER(s.staffType) = 'TEACHER'")
+    List<Staff> findTeachers();
+
     // Tìm kiếm chính xác theo mã nhân sự
     Optional<Staff> findByStaffCode(String staffCode);
 

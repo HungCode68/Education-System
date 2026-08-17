@@ -14,7 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -86,5 +88,20 @@ public class RoomController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         return ResponseEntity.ok(roomService.getAllRooms(keyword, pageable));
+    }
+
+    @GetMapping("/available")
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
+    public ResponseEntity<List<RoomDto>> getAvailableRooms(
+            @RequestParam Long classId,
+            @RequestParam Integer dayOfWeek,
+            @RequestParam String startTime,
+            @RequestParam String endTime,
+            @RequestParam(required = false) Long excludeScheduleId) {
+            
+        LocalTime parsedStartTime = LocalTime.parse(startTime);
+        LocalTime parsedEndTime = LocalTime.parse(endTime);
+        
+        return ResponseEntity.ok(roomService.getAvailableRooms(classId, dayOfWeek, parsedStartTime, parsedEndTime, excludeScheduleId));
     }
 }

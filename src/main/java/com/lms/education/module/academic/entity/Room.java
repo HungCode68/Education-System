@@ -22,9 +22,6 @@ public class Room {
     @Column(nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String name;
 
-    @Column(name = "room_type", length = 20)
-    private String roomType; // PHYSICAL, LMS
-
     @Column(name = "capacity")
     private Integer capacity;
 

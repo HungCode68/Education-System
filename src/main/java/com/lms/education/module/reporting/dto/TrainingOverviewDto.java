@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @Builder
@@ -46,4 +47,11 @@ public class TrainingOverviewDto {
 
     @Builder.Default
     private Integer classesClosedToday = 0;
+
+    private List<Long> newStudentIds;
+    private List<Long> droppedStudentIds;
+    private List<Long> newTeacherIds;
+    private List<Long> resignedTeacherIds;
+    private List<Long> newClassIds;
+    private List<Long> closedClassIds;
 }

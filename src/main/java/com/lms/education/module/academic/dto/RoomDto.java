@@ -22,8 +22,6 @@ public class RoomDto {
     @Size(max = 100, message = "Tên phòng học không vượt quá 100 ký tự")
     private String name;
 
-    private String roomType; // PHYSICAL, LMS
-
     @Min(value = 1, message = "Sức chứa tối thiểu phải là 1")
     private Integer capacity;
 

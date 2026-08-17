@@ -5,6 +5,9 @@ import com.lms.education.module.reporting.dto.ReportCenterStatisticsDto;
 import com.lms.education.module.reporting.dto.ReportSummaryDto;
 import com.lms.education.module.reporting.dto.TrainingDashboardDto;
 import com.lms.education.module.reporting.service.ReportCenterStatisticsService;
+import com.lms.education.module.academic.repository.ClassesRepository;
+import com.lms.education.module.user.repository.StaffRepository;
+import com.lms.education.module.user.repository.StudentRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +27,9 @@ import java.util.Map;
 public class ReportCenterStatisticsController {
 
     private final ReportCenterStatisticsService reportService;
+    private final StudentRepository studentRepository;
+    private final StaffRepository staffRepository;
+    private final ClassesRepository classesRepository;
 
     /**
      * Đồng bộ ngay / Chốt số liệu thống kê báo cáo theo ngày (Mặc định ngày hiện tại)
@@ -97,7 +103,55 @@ public class ReportCenterStatisticsController {
     @GetMapping("/latest")
     @PreAuthorize("hasAnyAuthority('REPORT_VIEW')")
     public ResponseEntity<ReportCenterStatisticsDto> getLatestReport() {
-        return ResponseEntity.ok(reportService.getLatestReport());
+        ReportCenterStatisticsDto centerReport = reportService.getLatestReport();
+        return ResponseEntity.ok(centerReport);
+    }
+
+    @PostMapping("/details/students")
+    public ResponseEntity<List<Map<String, Object>>> getStudentDetails(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return ResponseEntity.ok(List.of());
+        List<Map<String, Object>> result = studentRepository.findAllById(ids).stream().map(s -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", s.getId());
+            map.put("code", s.getStudentCode());
+            map.put("name", s.getFullName());
+            map.put("phone", s.getPhone());
+            map.put("dob", s.getDateOfBirth() != null ? s.getDateOfBirth().toString() : null);
+            map.put("address", s.getAddress());
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/details/staffs")
+    public ResponseEntity<List<Map<String, Object>>> getStaffDetails(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return ResponseEntity.ok(List.of());
+        List<Map<String, Object>> result = staffRepository.findAllById(ids).stream().map(s -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", s.getId());
+            map.put("code", s.getStaffCode());
+            map.put("name", s.getFullName());
+            map.put("phone", s.getPhone());
+            map.put("dob", s.getDateOfBirth() != null ? s.getDateOfBirth().toString() : null);
+            map.put("address", s.getAddress());
+            map.put("role", s.getStaffType());
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/details/classes")
+    public ResponseEntity<List<Map<String, Object>>> getClassDetails(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return ResponseEntity.ok(List.of());
+        List<Map<String, Object>> result = classesRepository.findAllById(ids).stream().map(c -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", c.getId());
+            map.put("code", c.getCode());
+            map.put("name", c.getName());
+            map.put("status", c.getStatus());
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 
     /**

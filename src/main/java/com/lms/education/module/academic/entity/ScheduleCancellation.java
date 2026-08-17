@@ -1,38 +1,38 @@
-package com.lms.education.module.ai.entity;
+package com.lms.education.module.academic.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "ai_chat_sessions")
+@Table(name = "schedule_cancellations")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AiChatSession {
+public class ScheduleCancellation {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "student_id")
-    private Long studentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id")
+    private Classes classes; // If null, means center-wide
 
-    @Column(name = "user_id")
-    private Long userId;
+    @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
+    private String reason;
 
-    @Column(name = "class_id")
-    private Long classId;
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
 
-    @Column(name = "title", length = 255)
-    private String title;
-
-    @Column(name = "status", length = 50)
-    private String status;
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

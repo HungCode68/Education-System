@@ -1,0 +1,1 @@
+ALTER TABLE staffs ADD COLUMN updated_at DATETIME;

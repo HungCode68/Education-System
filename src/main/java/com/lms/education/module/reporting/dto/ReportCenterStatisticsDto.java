@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -58,6 +59,13 @@ public class ReportCenterStatisticsDto {
 
     @Builder.Default
     private Integer classesClosedToday = 0;
+
+    private List<Long> newStudentIds;
+    private List<Long> droppedStudentIds;
+    private List<Long> newTeacherIds;
+    private List<Long> resignedTeacherIds;
+    private List<Long> newClassIds;
+    private List<Long> closedClassIds;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

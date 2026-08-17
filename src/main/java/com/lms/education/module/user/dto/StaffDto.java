@@ -38,6 +38,8 @@ public class StaffDto {
     @NotBlank(message = "Loại nhân sự không được để trống")
     private String staffType; // TEACHER, TEACHING_ASSISTANT, CONSULTANT, MANAGER
 
+    private String jobTitle; // Chức danh hiển thị (VD: Giảng viên Toán)
+
     @NotBlank(message = "Họ và tên không được để trống")
     @Size(max = 100, message = "Họ và tên không vượt quá 100 ký tự")
     private String fullName;
@@ -58,4 +60,12 @@ public class StaffDto {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate dateOfBirth;
+
+    private String gender;
+    private String address;
+    private String nationality;
+    private String identityNumber;
 }

@@ -83,6 +83,17 @@ public class UserController {
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Đặt lại mật khẩu thành công!");
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACCOUNT_DELETE')")
+    @LogActivity(module = "USER", action = "DELETE", targetType = "user", description = "Thu hồi/Xóa tài khoản")
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Đã thu hồi tài khoản thành công!");
 
         return ResponseEntity.ok(response);
     }

@@ -4,6 +4,8 @@ import com.lms.education.exception.ResourceNotFoundException;
 import com.lms.education.module.ai.dto.ChatRequest;
 import com.lms.education.module.ai.dto.ChatResponse;
 import com.lms.education.module.ai.dto.ChatSourceDto;
+import com.lms.education.module.ai.dto.AiChatSessionDto;
+import com.lms.education.module.ai.dto.AiChatMessageDto;
 import com.lms.education.module.ai.entity.AiChatMessage;
 import com.lms.education.module.ai.entity.AiChatSession;
 import com.lms.education.module.ai.repository.AiChatMessageRepository;
@@ -11,7 +13,9 @@ import com.lms.education.module.ai.repository.AiChatSessionRepository;
 import com.lms.education.module.ai.repository.AiDocumentChunkRepository;
 import com.lms.education.module.ai.repository.ChunkSearchProjection;
 import com.lms.education.module.user.entity.Student;
+import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.StudentRepository;
+import com.lms.education.module.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -35,6 +39,7 @@ import java.util.stream.Collectors;
 public class RagChatService {
 
     private final StudentRepository studentRepository;
+    private final UserRepository userRepository;
     private final AiDocumentChunkRepository chunkRepository;
     private final AiChatSessionRepository sessionRepository;
     private final AiChatMessageRepository messageRepository;
@@ -49,12 +54,31 @@ public class RagChatService {
     private int topK;
 
     @Transactional
-    public ChatResponse chat(ChatRequest request) {
-        // 1. Lấy thông tin học viên (System Prompt Context)
-        Student student = studentRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy học viên với ID: " + request.getStudentId()));
+    public ChatResponse chat(ChatRequest request, String userEmail) {
+        // 1. Xác định User và sinh System Prompt (Dynamic Prompt)
+        User currentUser = null;
+        Long userId = null;
+        if (userEmail != null) {
+            currentUser = userRepository.findByEmail(userEmail).orElse(null);
+            if (currentUser != null) {
+                userId = currentUser.getId();
+            }
+        }
 
-        String systemPromptText = buildSystemPrompt(student);
+        String systemPromptText;
+        if (userId != null) {
+            Student student = studentRepository.findByUserId(userId).orElse(null);
+            if (student != null) {
+                // Nếu là Học viên -> Dùng prompt riêng cho Học viên (Giữ nguyên logic cũ)
+                systemPromptText = buildSystemPrompt(student);
+            } else {
+                // Nếu không phải Học viên (Quản lý, Giảng viên) -> Dùng prompt chung
+                systemPromptText = buildGenericSystemPrompt();
+            }
+        } else {
+            // Fallback (Trường hợp gọi API không qua login context, ví dụ test nội bộ)
+            systemPromptText = buildGenericSystemPrompt();
+        }
 
         long startTime = System.currentTimeMillis();
         
@@ -148,11 +172,12 @@ public class RagChatService {
 
         // 6. Lưu trữ Session & Message
         AiChatSession session;
+        final Long finalUserId = userId;
         if (request.getSessionId() != null) {
             session = sessionRepository.findById(request.getSessionId())
-                    .orElseGet(() -> createNewSession(student.getId(), request.getMessage()));
+                    .orElseGet(() -> createNewSession(finalUserId, request.getMessage()));
         } else {
-            session = createNewSession(student.getId(), request.getMessage());
+            session = createNewSession(finalUserId, request.getMessage());
         }
 
         // Lưu User Message
@@ -183,11 +208,11 @@ public class RagChatService {
                 .build();
     }
 
-    private AiChatSession createNewSession(Long studentId, String title) {
+    private AiChatSession createNewSession(Long userId, String title) {
         // Lấy 50 ký tự đầu làm title
         String sessionTitle = title.length() > 50 ? title.substring(0, 50) + "..." : title;
         AiChatSession newSession = AiChatSession.builder()
-                .studentId(studentId)
+                .userId(userId) // Có thể null nếu fallback
                 .title(sessionTitle)
                 .status("ACTIVE")
                 .build();
@@ -205,5 +230,66 @@ public class RagChatService {
             student.getTargetScore() != null ? student.getTargetScore() : "chưa xác định",
             student.getStatus()
         );
+    }
+
+    private String buildGenericSystemPrompt() {
+        return "Bạn là trợ lý ảo giáo dục thông minh của hệ thống LMS. " +
+               "Nhiệm vụ của bạn là giải đáp thắc mắc về kiến thức học thuật, tài liệu và lộ trình học tập cho người dùng một cách chính xác và thân thiện.";
+    }
+
+    @Transactional(readOnly = true)
+    public List<AiChatSessionDto> getUserChatSessions(String userEmail) {
+        Long userId = null;
+        if (userEmail != null) {
+            User currentUser = userRepository.findByEmail(userEmail).orElse(null);
+            if (currentUser != null) {
+                userId = currentUser.getId();
+            }
+        }
+        
+        if (userId == null) {
+            return List.of();
+        }
+
+        return sessionRepository.findByUserIdOrderByUpdatedAtDesc(userId)
+                .stream()
+                .map(session -> AiChatSessionDto.builder()
+                        .id(session.getId())
+                        .title(session.getTitle())
+                        .status(session.getStatus())
+                        .updatedAt(session.getUpdatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AiChatMessageDto> getSessionMessages(Long sessionId, String userEmail) {
+        // Validate access
+        AiChatSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + sessionId));
+                
+        Long userId = null;
+        if (userEmail != null) {
+            User currentUser = userRepository.findByEmail(userEmail).orElse(null);
+            if (currentUser != null) {
+                userId = currentUser.getId();
+            }
+        }
+        
+        if (userId == null || !userId.equals(session.getUserId())) {
+            // User not authorized to view this session
+            throw new com.lms.education.exception.OperationNotPermittedException("You don't have access to this chat session");
+        }
+
+        return messageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId)
+                .stream()
+                .map(msg -> AiChatMessageDto.builder()
+                        .id(msg.getId())
+                        .sessionId(msg.getSessionId())
+                        .role("ASSISTANT".equalsIgnoreCase(msg.getRole()) ? "AI" : msg.getRole())
+                        .content(msg.getContent())
+                        .createdAt(msg.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

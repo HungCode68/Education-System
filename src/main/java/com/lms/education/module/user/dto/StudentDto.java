@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -41,4 +42,16 @@ public class StudentDto {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate dateOfBirth;
+
+    private String gender;
+    private String address;
+    
+    // Validate số điện thoại chuẩn mạng viễn thông Việt Nam (có thể null theo yêu cầu user)
+    @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Số điện thoại học viên không hợp lệ")
+    private String phone;
+    
+    private String identityNumber;
 }

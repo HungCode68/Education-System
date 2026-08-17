@@ -35,6 +35,8 @@ public class CourseServiceImpl implements CourseService {
                 .name(dto.getName().trim())
                 .description(dto.getDescription())
                 .durationHours(dto.getDurationHours() != null ? dto.getDurationHours() : 0)
+                .totalSessions(dto.getTotalSessions() != null ? dto.getTotalSessions() : 0)
+                .sessionsPerWeek(dto.getSessionsPerWeek() != null ? dto.getSessionsPerWeek() : 0)
                 .basePrice(dto.getBasePrice())
                 .status(dto.getStatus() != null ? dto.getStatus().toUpperCase() : "ACTIVE")
                 .metadata(dto.getMetadata()) // Map trực tiếp dữ liệu JSON
@@ -63,6 +65,8 @@ public class CourseServiceImpl implements CourseService {
         course.setName(dto.getName().trim());
         course.setDescription(dto.getDescription());
         course.setDurationHours(dto.getDurationHours() != null ? dto.getDurationHours() : 0);
+        course.setTotalSessions(dto.getTotalSessions() != null ? dto.getTotalSessions() : 0);
+        course.setSessionsPerWeek(dto.getSessionsPerWeek() != null ? dto.getSessionsPerWeek() : 0);
         course.setBasePrice(dto.getBasePrice());
 
         if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
@@ -130,6 +134,8 @@ public class CourseServiceImpl implements CourseService {
                 .name(course.getName())
                 .description(course.getDescription())
                 .durationHours(course.getDurationHours())
+                .totalSessions(course.getTotalSessions())
+                .sessionsPerWeek(course.getSessionsPerWeek())
                 .basePrice(course.getBasePrice())
                 .status(course.getStatus())
                 .metadata(course.getMetadata())
