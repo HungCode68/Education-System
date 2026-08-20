@@ -90,7 +90,7 @@ public class ClassAnnouncementServiceImpl implements ClassAnnouncementService {
 
         checkTeacherClassPermission(createdBy, classes.getId());
 
-        String objectName = minioStorageService.uploadFile(file);
+        String objectName = minioStorageService.uploadFileKeepName(file);
 
         ClassAnnouncement announcement = ClassAnnouncement.builder()
                 .classes(classes)
@@ -110,25 +110,56 @@ public class ClassAnnouncementServiceImpl implements ClassAnnouncementService {
 
     @Override
     @Transactional
-    public ClassAnnouncementDto updateAnnouncement(Long id, ClassAnnouncementDto dto) {
+    public ClassAnnouncementDto updateAnnouncement(Long id, String title, String content, Boolean isPinned, Boolean removeAttachment, MultipartFile file) {
         ClassAnnouncement announcement = classAnnouncementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông báo với ID: " + id));
 
         User currentUser = resolveUser(null);
         checkTeacherClassPermission(currentUser, announcement.getClasses().getId());
 
-        if (dto.getTitle() != null && !dto.getTitle().trim().isEmpty()) {
-            announcement.setTitle(dto.getTitle());
+        if (title != null && !title.trim().isEmpty()) {
+            announcement.setTitle(title);
         }
-        if (dto.getContent() != null && !dto.getContent().trim().isEmpty()) {
-            announcement.setContent(dto.getContent());
+        if (content != null && !content.trim().isEmpty()) {
+            announcement.setContent(content);
         }
-        if (dto.getAttachmentUrl() != null) {
-            announcement.setAttachmentUrl(dto.getAttachmentUrl());
-            announcement.setHasAttachment(!dto.getAttachmentUrl().trim().isEmpty());
+        if (isPinned != null) {
+            announcement.setIsPinned(isPinned);
         }
-        if (dto.getIsPinned() != null) {
-            announcement.setIsPinned(dto.getIsPinned());
+
+        // Handle attachment
+        if (Boolean.TRUE.equals(removeAttachment)) {
+            if (announcement.getHasAttachment() && announcement.getAttachmentUrl() != null) {
+                try {
+                    String fileName = announcement.getAttachmentUrl();
+                    if (fileName.contains("/")) {
+                        fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
+                    }
+                    minioStorageService.deleteFile(fileName);
+                } catch (Exception e) {
+                    log.error("Failed to delete old attachment for announcement ID {}: {}", id, e.getMessage());
+                }
+            }
+            announcement.setAttachmentUrl(null);
+            announcement.setHasAttachment(false);
+        }
+
+        if (file != null && !file.isEmpty()) {
+            // Delete old if exists
+            if (announcement.getHasAttachment() && announcement.getAttachmentUrl() != null) {
+                try {
+                    String oldName = announcement.getAttachmentUrl();
+                    if (oldName.contains("/")) {
+                        oldName = oldName.substring(oldName.lastIndexOf("/") + 1);
+                    }
+                    minioStorageService.deleteFile(oldName);
+                } catch (Exception e) {
+                    log.error("Failed to delete old attachment before replacing for announcement ID {}: {}", id, e.getMessage());
+                }
+            }
+            String fileUrl = minioStorageService.uploadFileKeepName(file);
+            announcement.setAttachmentUrl(fileUrl);
+            announcement.setHasAttachment(true);
         }
 
         ClassAnnouncement updated = classAnnouncementRepository.save(announcement);

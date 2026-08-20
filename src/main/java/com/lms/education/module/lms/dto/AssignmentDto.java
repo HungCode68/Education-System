@@ -40,6 +40,8 @@ public class AssignmentDto {
 
     private Integer maxAttempts;
 
+    private Boolean showCorrectAnswers;
+
     private String status; // UNPUBLISHED, PUBLISHED, CLOSED
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

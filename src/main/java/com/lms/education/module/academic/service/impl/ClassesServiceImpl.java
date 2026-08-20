@@ -16,11 +16,14 @@ import com.lms.education.module.academic.service.ClassesService;
 import com.lms.education.module.academic.entity.ClassSchedule;
 import com.lms.education.module.academic.entity.ScheduleCancellation;
 import com.lms.education.module.user.entity.Staff;
+import com.lms.education.module.user.entity.Student;
 import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.StaffRepository;
+import com.lms.education.module.user.repository.StudentRepository;
 import com.lms.education.module.user.repository.UserRepository;
 import com.lms.education.module.teaching.repository.ScheduleAssignmentRepository;
 import com.lms.education.module.teaching.repository.TeachingAssignmentRepository;
+import com.lms.education.module.enrollment.repository.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -48,6 +51,8 @@ public class ClassesServiceImpl implements ClassesService {
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final ClassScheduleRepository classScheduleRepository;
     private final ScheduleCancellationRepository scheduleCancellationRepository;
+    private final StudentRepository studentRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     @Override
     @Transactional
@@ -189,8 +194,11 @@ public class ClassesServiceImpl implements ClassesService {
 
         Long userId = user.getId();
         Long staffId = staffRepository.findByUserId(userId).map(Staff::getId).orElse(null);
+        Long studentId = studentRepository.findByUserId(userId).map(Student::getId).orElse(null);
 
         Set<Long> classIds = new HashSet<>();
+        
+        // Logic cho Teacher/Staff
         if (staffId != null || userId != null) {
             List<Long> scheduleClassIds = scheduleAssignmentRepository.findClassIdsByTeacher(userId, staffId);
             classIds.addAll(scheduleClassIds);
@@ -202,6 +210,15 @@ public class ClassesServiceImpl implements ClassesService {
                     }
                 });
             }
+        }
+        
+        // Logic cho Student
+        if (studentId != null) {
+            enrollmentRepository.findByStudentId(studentId).forEach(enrollment -> {
+                if (enrollment.getClasses() != null && !"DROPPED".equalsIgnoreCase(enrollment.getStatus())) {
+                    classIds.add(enrollment.getClasses().getId());
+                }
+            });
         }
 
         if (classIds.isEmpty()) {

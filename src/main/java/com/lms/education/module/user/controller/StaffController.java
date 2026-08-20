@@ -132,4 +132,13 @@ public class StaffController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/my-profile")
+    public ResponseEntity<StaffDto> getMyProfile(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof com.lms.education.security.UserPrincipal)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        com.lms.education.security.UserPrincipal userDetails = (com.lms.education.security.UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(staffService.getMyProfile(userDetails.getId()));
+    }
 }

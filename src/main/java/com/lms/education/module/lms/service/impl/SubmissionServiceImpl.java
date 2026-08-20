@@ -6,6 +6,7 @@ import com.lms.education.module.lms.dto.SubmissionDto;
 import com.lms.education.module.lms.entity.Assignment;
 import com.lms.education.module.lms.entity.Submission;
 import com.lms.education.module.lms.repository.AssignmentRepository;
+import com.lms.education.module.lms.repository.AssignmentQuestionRepository;
 import com.lms.education.module.lms.repository.SubmissionRepository;
 import com.lms.education.module.lms.service.SubmissionService;
 import com.lms.education.module.teaching.repository.ScheduleAssignmentRepository;
@@ -38,6 +39,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     private final SubmissionRepository submissionRepository;
     private final AssignmentRepository assignmentRepository;
+    private final AssignmentQuestionRepository assignmentQuestionRepository;
     private final StudentRepository studentRepository;
     private final UserRepository userRepository;
     private final StaffRepository staffRepository;
@@ -62,16 +64,19 @@ public class SubmissionServiceImpl implements SubmissionService {
         User currentUser = getCurrentUser(auth);
         Student student = getCurrentStudent(currentUser);
 
-        Optional<Submission> existingOpt = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId());
+        long attemptCount = submissionRepository.countByAssignmentIdAndStudentId(assignmentId, student.getId());
+        Optional<Submission> existingOpt = submissionRepository.findTopByAssignmentIdAndStudentIdOrderByStartTimeDesc(assignmentId, student.getId());
+        
         if (existingOpt.isPresent()) {
             Submission existing = existingOpt.get();
-            if ("SUBMITTED".equalsIgnoreCase(existing.getStatus())
-                    || "LATE".equalsIgnoreCase(existing.getStatus())
-                    || "GRADED".equalsIgnoreCase(existing.getStatus())) {
-                throw new OperationNotPermittedException("Bạn đã nộp bài tập này rồi, không thể bắt đầu lại!");
+            if ("IN_PROGRESS".equalsIgnoreCase(existing.getStatus())) {
+                log.info("Học viên {} tiếp tục làm bài tập ID: {}", student.getFullName(), assignmentId);
+                return mapToDto(existing);
             }
-            log.info("Học viên {} tiếp tục làm bài tập ID: {}", student.getFullName(), assignmentId);
-            return mapToDto(existing);
+
+            if (attemptCount >= assignment.getMaxAttempts()) {
+                throw new OperationNotPermittedException("Bạn đã vượt quá số lần làm bài cho phép (" + assignment.getMaxAttempts() + " lần)!");
+            }
         }
 
         Submission submission = Submission.builder()
@@ -109,7 +114,15 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setEndTime(now);
 
         Assignment assignment = submission.getAssignment();
-        if (assignment.getDueDate() != null && now.isAfter(assignment.getDueDate())) {
+        
+       
+        boolean needsManualGrading = assignmentQuestionRepository.findByAssignmentIdOrderByOrderNumberAsc(assignment.getId())
+                .stream()
+                .anyMatch(aq -> "ESSAY".equalsIgnoreCase(aq.getQuestion().getQuestionType()));
+
+        if (!needsManualGrading) {
+            submission.setStatus("GRADED");
+        } else if (assignment.getDueDate() != null && now.isAfter(assignment.getDueDate())) {
             submission.setStatus("LATE");
         } else {
             submission.setStatus("SUBMITTED");
@@ -171,10 +184,23 @@ public class SubmissionServiceImpl implements SubmissionService {
         User currentUser = getCurrentUser(auth);
         Student student = getCurrentStudent(currentUser);
 
-        Submission submission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId())
+        Submission submission = submissionRepository.findTopByAssignmentIdAndStudentIdOrderByStartTimeDesc(assignmentId, student.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bạn chưa bắt đầu làm bài tập này!"));
 
         return mapToDto(submission);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDto> getMySubmissionHistory(Long assignmentId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = getCurrentUser(auth);
+        Student student = getCurrentStudent(currentUser);
+
+        return submissionRepository.findByAssignmentIdAndStudentIdOrderByStartTimeDesc(assignmentId, student.getId())
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -195,8 +221,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<SubmissionDto> getByAssignmentIdPageable(Long assignmentId, Pageable pageable) {
-        return submissionRepository.findByAssignmentId(assignmentId, pageable).map(this::mapToDto);
+    public Page<SubmissionDto> getByAssignmentIdPageable(Long assignmentId, String status, String keyword, Pageable pageable) {
+        Page<Submission> submissions = submissionRepository.findByAssignmentIdWithFilters(assignmentId, status, keyword, pageable);
+        return submissions.map(this::mapToDto);
     }
 
     private SubmissionDto mapToDto(Submission entity) {
@@ -214,6 +241,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 .score(entity.getScore())
                 .feedback(entity.getFeedback())
                 .status(entity.getStatus())
+                .attemptCount((int) submissionRepository.countByAssignmentIdAndStudentId(entity.getAssignment().getId(), entity.getStudent().getId()))
                 .submittedAt(entity.getSubmittedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

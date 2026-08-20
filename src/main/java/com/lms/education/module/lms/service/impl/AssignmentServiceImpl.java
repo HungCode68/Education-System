@@ -73,6 +73,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .assignmentType(dto.getAssignmentType() != null && !dto.getAssignmentType().trim().isEmpty() ? dto.getAssignmentType().trim().toUpperCase() : "HOMEWORK")
                 .timeLimitMinutes(dto.getTimeLimitMinutes() != null ? dto.getTimeLimitMinutes() : 0)
                 .maxAttempts(dto.getMaxAttempts() != null ? dto.getMaxAttempts() : 1)
+                .showCorrectAnswers(dto.getShowCorrectAnswers() != null ? dto.getShowCorrectAnswers() : true)
                 .status(dto.getStatus() != null && !dto.getStatus().trim().isEmpty() ? dto.getStatus().trim().toUpperCase() : "PUBLISHED")
                 .build();
 
@@ -131,6 +132,10 @@ public class AssignmentServiceImpl implements AssignmentService {
                 throw new OperationNotPermittedException("Số lần làm bài tối đa (maxAttempts) phải từ 1 trở lên!");
             }
             existing.setMaxAttempts(dto.getMaxAttempts());
+        }
+
+        if (dto.getShowCorrectAnswers() != null) {
+            existing.setShowCorrectAnswers(dto.getShowCorrectAnswers());
         }
 
         if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
@@ -274,6 +279,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .assignmentType(entity.getAssignmentType())
                 .timeLimitMinutes(entity.getTimeLimitMinutes())
                 .maxAttempts(entity.getMaxAttempts())
+                .showCorrectAnswers(entity.getShowCorrectAnswers())
                 .status(status)
                 .createdAt(entity.getCreatedAt())
                 .build();

@@ -37,6 +37,8 @@ public class SubmissionDto {
 
     private String status; // IN_PROGRESS, SUBMITTED, LATE, GRADED
 
+    private Integer attemptCount;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime submittedAt;
 

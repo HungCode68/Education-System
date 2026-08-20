@@ -19,6 +19,7 @@ import com.lms.education.module.teaching.entity.TeachingSubstitution;
 import com.lms.education.module.teaching.repository.ScheduleAssignmentRepository;
 import com.lms.education.module.teaching.repository.TeachingSubstitutionRepository;
 import com.lms.education.module.user.entity.Staff;
+import com.lms.education.module.user.entity.Student;
 import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.StaffRepository;
 import com.lms.education.module.user.repository.StudentRepository;
@@ -51,6 +52,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     private final StudentRepository studentRepository;
     private final StaffRepository staffRepository;
     private final UserRepository userRepository;
+    private final com.lms.education.module.attendance.repository.AttendanceRepository attendanceRepository;
 
     @Override
     @Transactional
@@ -202,6 +204,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         }
 
         List<ClassSchedule> studentSchedules = classScheduleRepository.findSchedulesByStudentId(studentId);
+        List<com.lms.education.module.attendance.entity.Attendance> attendances = attendanceRepository.findByStudentIdAndAttendanceDateBetween(studentId, startDate, endDate);
         List<TimetableEntryDto> timetable = new ArrayList<>();
 
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
@@ -265,6 +268,11 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                             .isSubstituted(isSubstituted)
                             .status(isCancelled ? "CANCELLED" : "NORMAL")
                             .cancellationReason(cancelReason)
+                            .attendanceStatus(attendances.stream()
+                                    .filter(a -> a.getSchedule().getId().equals(schedule.getId()) && a.getAttendanceDate().equals(finalDate))
+                                    .findFirst()
+                                    .map(com.lms.education.module.attendance.entity.Attendance::getStatus)
+                                    .orElse(null))
                             .build());
                 }
             }
@@ -403,6 +411,34 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         }
 
         return getTeacherTimetable(staffId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TimetableEntryDto> getMyStudentTimetable(LocalDate startDate, LocalDate endDate) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) {
+                return List.of();
+            }
+
+            String email = auth.getName();
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) {
+                return List.of();
+            }
+
+            Long userId = user.getId();
+            Long studentId = studentRepository.findByUserId(userId).map(Student::getId).orElse(null);
+            if (studentId == null) {
+                return List.of();
+            }
+
+            return getStudentTimetable(studentId, startDate, endDate);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Override

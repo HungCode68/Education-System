@@ -265,6 +265,7 @@ CREATE TABLE IF NOT EXISTS assignments (
     assignment_type VARCHAR(50) DEFAULT 'HOMEWORK',
     time_limit_minutes INT DEFAULT 0,
     max_attempts INT DEFAULT 1,
+    show_correct_answers BOOLEAN DEFAULT TRUE,
     status VARCHAR(20) DEFAULT 'PUBLISHED', -- UNPUBLISHED, PUBLISHED, CLOSED
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_assignment_lesson FOREIGN KEY (lesson_id) REFERENCES lessons(id)

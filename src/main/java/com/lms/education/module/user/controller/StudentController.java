@@ -108,4 +108,13 @@ public class StudentController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/my-profile")
+    public ResponseEntity<StudentDto> getMyProfile(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof com.lms.education.security.UserPrincipal)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        com.lms.education.security.UserPrincipal userDetails = (com.lms.education.security.UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(studentService.getMyProfile(userDetails.getId()));
+    }
 }

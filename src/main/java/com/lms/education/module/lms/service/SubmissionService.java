@@ -19,9 +19,11 @@ public interface SubmissionService {
 
     SubmissionDto getMySubmission(Long assignmentId);
 
+    List<SubmissionDto> getMySubmissionHistory(Long assignmentId);
+
     List<SubmissionDto> getByAssignmentId(Long assignmentId);
 
     List<SubmissionDto> getByStudentId(Long studentId);
 
-    Page<SubmissionDto> getByAssignmentIdPageable(Long assignmentId, Pageable pageable);
+    Page<SubmissionDto> getByAssignmentIdPageable(Long assignmentId, String status, String keyword, Pageable pageable);
 }

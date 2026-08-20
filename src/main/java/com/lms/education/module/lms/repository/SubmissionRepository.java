@@ -16,14 +16,27 @@ import java.util.Optional;
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     boolean existsByAssignmentId(Long assignmentId);
+    boolean existsByAssignmentIdAndStudentIdAndStatus(Long assignmentId, Long studentId, String status);
 
-    Optional<Submission> findByAssignmentIdAndStudentId(Long assignmentId, Long studentId);
+    Optional<Submission> findTopByAssignmentIdAndStudentIdOrderByStartTimeDesc(Long assignmentId, Long studentId);
+
+    List<Submission> findByAssignmentIdAndStudentIdOrderByStartTimeDesc(Long assignmentId, Long studentId);
+
+    long countByAssignmentIdAndStudentId(Long assignmentId, Long studentId);
 
     List<Submission> findByAssignmentIdOrderBySubmittedAtDesc(Long assignmentId);
 
     List<Submission> findByStudentIdOrderBySubmittedAtDesc(Long studentId);
 
     Page<Submission> findByAssignmentId(Long assignmentId, Pageable pageable);
+
+    @Query("SELECT s FROM Submission s WHERE s.assignment.id = :assignmentId AND " +
+           "(:status IS NULL OR :status = '' OR UPPER(s.status) = UPPER(:status)) AND " +
+           "(:keyword IS NULL OR :keyword = '' OR LOWER(s.student.user.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Submission> findByAssignmentIdWithFilters(@Param("assignmentId") Long assignmentId, 
+                                                   @Param("status") String status, 
+                                                   @Param("keyword") String keyword, 
+                                                   Pageable pageable);
 
     @Query("SELECT AVG(s.score) FROM Submission s WHERE s.assignment.lesson.classes.id = :classId AND s.score IS NOT NULL")
     Double calculateAverageScoreByClassId(@Param("classId") Long classId);

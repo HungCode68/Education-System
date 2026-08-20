@@ -19,6 +19,8 @@ public interface LearningMaterialRepository extends JpaRepository<LearningMateri
 
     List<LearningMaterial> findByLessonClassesIdOrderByDisplayOrderAsc(Long classId);
 
+    boolean existsByLessonId(Long lessonId);
+
     @Query("SELECT lm FROM LearningMaterial lm WHERE " +
            "LOWER(lm.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "(lm.lesson IS NOT NULL AND (LOWER(lm.lesson.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

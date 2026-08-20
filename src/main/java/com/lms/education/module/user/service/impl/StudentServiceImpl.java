@@ -32,6 +32,7 @@ public class StudentServiceImpl implements StudentService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
+    private final com.lms.education.module.enrollment.repository.EnrollmentRepository enrollmentRepository;
 
     @Override
     @Transactional
@@ -230,5 +231,22 @@ public class StudentServiceImpl implements StudentService {
                 .status(student.getStatus())
                 .createdAt(student.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentDto getMyProfile(Long userId) {
+        Student student = studentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản của bạn chưa được liên kết với hồ sơ học sinh nào."));
+
+        StudentDto dto = mapToDto(student);
+
+        // Fetch current class
+        List<com.lms.education.module.enrollment.entity.Enrollment> enrollments = enrollmentRepository.findByStudentId(student.getId());
+        if (enrollments != null && !enrollments.isEmpty()) {
+            dto.setCurrentClassId(enrollments.get(0).getClasses().getId());
+        }
+
+        return dto;
     }
 }

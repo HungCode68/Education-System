@@ -44,6 +44,10 @@ public class Assignment {
     @Builder.Default
     private Integer maxAttempts = 1;
 
+    @Column(name = "show_correct_answers")
+    @Builder.Default
+    private Boolean showCorrectAnswers = true;
+
     @Column(length = 20)
     @Builder.Default
     private String status = "PUBLISHED"; // UNPUBLISHED, PUBLISHED, CLOSED

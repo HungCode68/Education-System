@@ -22,13 +22,13 @@ public class SubmissionAnswerController {
     private final SubmissionAnswerService submissionAnswerService;
 
     @GetMapping("/submission/{submissionId}")
-    @PreAuthorize("hasAnyAuthority('LMS_SUBMISSION_VIEW', 'LMS_SUBMISSION_CREATE', 'LMS_SUBMISSION_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('LMS_SUBMISSION_VIEW', 'LMS_SUBMISSION_CREATE', 'LMS_SUBMISSION_UPDATE', 'LMS_SUBMISSION_SUBMIT')")
     public ResponseEntity<List<SubmissionAnswerDto>> getAnswersBySubmissionId(@PathVariable Long submissionId) {
         return ResponseEntity.ok(submissionAnswerService.getAnswersBySubmissionId(submissionId));
     }
 
     @PostMapping("/submission/{submissionId}")
-    @PreAuthorize("hasAnyAuthority('LMS_SUBMISSION_CREATE', 'LMS_SUBMISSION_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('LMS_SUBMISSION_CREATE', 'LMS_SUBMISSION_UPDATE', 'LMS_SUBMISSION_SUBMIT')")
     @LogActivity(module = "LMS", action = "CREATE", targetType = "submission_answer", description = "Lưu hoặc cập nhật câu trả lời trong bài nộp")
     public ResponseEntity<Map<String, Object>> saveOrUpdateAnswer(
             @PathVariable Long submissionId,
@@ -44,7 +44,7 @@ public class SubmissionAnswerController {
     }
 
     @PutMapping("/submission/{submissionId}/batch")
-    @PreAuthorize("hasAnyAuthority('LMS_SUBMISSION_CREATE', 'LMS_SUBMISSION_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('LMS_SUBMISSION_CREATE', 'LMS_SUBMISSION_UPDATE', 'LMS_SUBMISSION_SUBMIT')")
     @LogActivity(module = "LMS", action = "UPDATE", targetType = "submission_answer", description = "Lưu hàng loạt câu trả lời và tự động chấm điểm")
     public ResponseEntity<Map<String, Object>> batchSaveAnswers(
             @PathVariable Long submissionId,
@@ -55,6 +55,22 @@ public class SubmissionAnswerController {
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Lưu bộ câu trả lời và tự động tính điểm thành công!");
         response.put("data", savedList);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/submission/{submissionId}/grade-batch")
+    @PreAuthorize("hasAnyAuthority('LMS_SUBMISSION_GRADE')")
+    @LogActivity(module = "LMS", action = "GRADE", targetType = "submission_answer", description = "Giáo viên chấm điểm hàng loạt các câu trả lời")
+    public ResponseEntity<Map<String, Object>> batchGradeAnswers(
+            @PathVariable Long submissionId,
+            @RequestBody List<com.lms.education.module.lms.dto.GradeAnswerDto> grades) {
+
+        List<SubmissionAnswerDto> gradedList = submissionAnswerService.batchGradeAnswers(submissionId, grades);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Chấm điểm hàng loạt thành công!");
+        response.put("data", gradedList);
 
         return ResponseEntity.ok(response);
     }

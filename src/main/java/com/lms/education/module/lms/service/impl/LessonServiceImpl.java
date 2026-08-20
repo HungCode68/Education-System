@@ -7,6 +7,8 @@ import com.lms.education.module.academic.entity.Classes;
 import com.lms.education.module.academic.repository.ClassesRepository;
 import com.lms.education.module.lms.dto.LessonDto;
 import com.lms.education.module.lms.entity.Lesson;
+import com.lms.education.module.lms.repository.AssignmentRepository;
+import com.lms.education.module.lms.repository.LearningMaterialRepository;
 import com.lms.education.module.lms.repository.LessonRepository;
 import com.lms.education.module.lms.service.LessonService;
 import com.lms.education.module.teaching.repository.ScheduleAssignmentRepository;
@@ -38,6 +40,8 @@ public class LessonServiceImpl implements LessonService {
     private final StaffRepository staffRepository;
     private final ScheduleAssignmentRepository scheduleAssignmentRepository;
     private final TeachingSubstitutionRepository teachingSubstitutionRepository;
+    private final LearningMaterialRepository learningMaterialRepository;
+    private final AssignmentRepository assignmentRepository;
 
     @Override
     @Transactional
@@ -111,6 +115,11 @@ public class LessonServiceImpl implements LessonService {
 
         // Kiểm tra phân công giảng dạy trước khi xóa bài học của lớp
         checkTeacherClassPermission(currentUser, existing.getClasses().getId());
+
+        // Chặn xóa nếu bài học có chứa tài liệu hoặc bài tập
+        if (learningMaterialRepository.existsByLessonId(id) || assignmentRepository.existsByLessonId(id)) {
+            throw new OperationNotPermittedException("Không thể xóa bài học này vì đang chứa tài liệu hoặc bài tập. Vui lòng xóa tài liệu và bài tập trước khi xóa bài học.");
+        }
 
         lessonRepository.delete(existing);
         log.info("Đã xóa bài học ID: {}", id);

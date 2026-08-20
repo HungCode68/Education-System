@@ -24,6 +24,8 @@ public interface StaffService {
 
     List<StaffDto> getTeachers();
 
-    // Cấp tài khoản tự động hàng loạt
+    // Cấp tài khoản tự động hàng loạt cho nhân sự
     java.util.Map<String, Object> provisionAccounts(com.lms.education.module.user.dto.AccountProvisionDto dto);
+
+    StaffDto getMyProfile(Long userId);
 }

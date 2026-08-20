@@ -299,4 +299,12 @@ public class StaffServiceImpl implements StaffService {
                 .createdAt(staff.getCreatedAt())
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StaffDto getMyProfile(Long userId) {
+        Staff staff = staffRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản của bạn chưa được liên kết với hồ sơ nhân sự nào."));
+        return mapToDto(staff);
+    }
 }

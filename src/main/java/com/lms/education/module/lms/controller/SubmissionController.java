@@ -80,6 +80,12 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionService.getMySubmission(assignmentId));
     }
 
+    @GetMapping("/my-history/{assignmentId}")
+    @PreAuthorize("hasAuthority('LMS_SUBMISSION_VIEW')")
+    public ResponseEntity<List<SubmissionDto>> getMyHistory(@PathVariable Long assignmentId) {
+        return ResponseEntity.ok(submissionService.getMySubmissionHistory(assignmentId));
+    }
+
     @GetMapping("/assignment/{assignmentId}")
     @PreAuthorize("hasAuthority('LMS_SUBMISSION_VIEW')")
     public ResponseEntity<List<SubmissionDto>> getSubmissionsByAssignmentId(@PathVariable Long assignmentId) {
@@ -90,6 +96,8 @@ public class SubmissionController {
     @PreAuthorize("hasAuthority('LMS_SUBMISSION_VIEW')")
     public ResponseEntity<Page<SubmissionDto>> getSubmissionsByAssignmentIdPageable(
             @PathVariable Long assignmentId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "submittedAt") String sortBy,
@@ -100,7 +108,7 @@ public class SubmissionController {
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        return ResponseEntity.ok(submissionService.getByAssignmentIdPageable(assignmentId, pageable));
+        return ResponseEntity.ok(submissionService.getByAssignmentIdPageable(assignmentId, status, keyword, pageable));
     }
 
     @GetMapping("/student/{studentId}")

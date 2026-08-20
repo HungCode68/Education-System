@@ -23,5 +23,8 @@ public class AssignmentQuestionDto {
 
     private BigDecimal scoreWeight;
 
+    
+    private Boolean allowMultipleAnswers;
+
     private QuestionDto question;
 }

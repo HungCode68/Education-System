@@ -61,4 +61,16 @@ public class RagChatController {
         List<AiChatMessageDto> messages = ragChatService.getSessionMessages(sessionId, userEmail);
         return ResponseEntity.ok(messages);
     }
+    @DeleteMapping("/chat/sessions/{sessionId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> deleteSession(@PathVariable Long sessionId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = null;
+        if (auth != null && auth.getPrincipal() instanceof UserDetails) {
+            userEmail = ((UserDetails) auth.getPrincipal()).getUsername();
+        }
+
+        ragChatService.deleteSession(sessionId, userEmail);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -292,4 +292,23 @@ public class RagChatService {
                         .build())
                 .collect(Collectors.toList());
     }
+    @Transactional
+    public void deleteSession(Long sessionId, String userEmail) {
+        AiChatSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + sessionId));
+
+        Long userId = null;
+        if (userEmail != null) {
+            User currentUser = userRepository.findByEmail(userEmail).orElse(null);
+            if (currentUser != null) {
+                userId = currentUser.getId();
+            }
+        }
+
+        if (userId == null || !userId.equals(session.getUserId())) {
+            throw new com.lms.education.exception.OperationNotPermittedException("You don't have access to delete this chat session");
+        }
+
+        sessionRepository.delete(session);
+    }
 }

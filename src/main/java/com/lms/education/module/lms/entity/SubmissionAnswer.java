@@ -36,6 +36,9 @@ public class SubmissionAnswer {
     @JoinColumn(name = "selected_option_id")
     private QuestionOption selectedOption;
 
+    @Column(name = "selected_option_ids", length = 500)
+    private String selectedOptionIds;
+
     @Column(name = "text_answer", columnDefinition = "TEXT")
     private String textAnswer;
 

@@ -64,12 +64,12 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (saved != null) {
                 sheet.add(toDto(saved));
             } else {
-                // Default unmarked student to PRESENT
+                // Default unmarked student to null status
                 sheet.add(AttendanceDto.builder()
                         .scheduleId(scheduleId)
                         .studentId(student.getId())
                         .attendanceDate(attendanceDate)
-                        .status("PRESENT")
+                        .status(null)
                         .note("")
                         .studentName(student.getFullName())
                         .studentCode(student.getStudentCode())
@@ -98,6 +98,13 @@ public class AttendanceServiceImpl implements AttendanceService {
         if (dtos != null) {
             for (AttendanceDto dto : dtos) {
                 if (dto.getStudentId() == null) continue;
+
+                if (dto.getStatus() == null || dto.getStatus().trim().isEmpty()) {
+                    attendanceRepository.findByScheduleIdAndStudentIdAndAttendanceDate(scheduleId, dto.getStudentId(), attendanceDate)
+                            .ifPresent(attendanceRepository::delete);
+                    continue;
+                }
+
                 dto.setScheduleId(scheduleId);
                 dto.setAttendanceDate(attendanceDate);
                 upsertAttendanceInternal(dto);

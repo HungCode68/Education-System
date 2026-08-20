@@ -15,5 +15,6 @@ public interface SubmissionAnswerService {
     void removeAnswer(Long submissionId, Long questionId);
 
     SubmissionAnswerDto gradeAnswer(Long answerId, java.math.BigDecimal score);
-}
 
+    List<SubmissionAnswerDto> batchGradeAnswers(Long submissionId, List<com.lms.education.module.lms.dto.GradeAnswerDto> grades);
+}

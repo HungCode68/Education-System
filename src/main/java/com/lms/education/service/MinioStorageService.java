@@ -64,6 +64,45 @@ public class MinioStorageService {
         }
     }
 
+    // Upload file giữ nguyên tên gốc (bọc trong thư mục UUID để tránh trùng lặp)
+    public String uploadFileKeepName(MultipartFile file) {
+        try {
+            boolean found = minioClient.bucketExists(
+                    BucketExistsArgs.builder().bucket(bucketName).build()
+            );
+            if (!found) {
+                minioClient.makeBucket(
+                        MakeBucketArgs.builder().bucket(bucketName).build()
+                );
+            }
+
+            String originalFileName = file.getOriginalFilename();
+            if (originalFileName == null || originalFileName.isEmpty()) {
+                originalFileName = "unnamed_file";
+            }
+            
+            // Tạo objectName dạng thư_mục_UUID/tên_file_gốc.ext
+            // Khi tải về trình duyệt sẽ lấy tên_file_gốc.ext
+            String objectName = UUID.randomUUID().toString() + "/" + originalFileName;
+
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .stream(file.getInputStream(), file.getSize(), -1)
+                            .contentType(file.getContentType())
+                            .build()
+            );
+
+            log.info("Đã upload thành công file {} lên MinIO", objectName);
+            return objectName;
+
+        } catch (Exception e) {
+            log.error("Lỗi khi upload file lên MinIO", e);
+            throw new RuntimeException("Lỗi hệ thống khi lưu trữ file: " + e.getMessage());
+        }
+    }
+
     // Lấy Presigned URL để tải/xem file
     public String getFileUrl(String objectName) {
         if (objectName == null || objectName.trim().isEmpty()) {

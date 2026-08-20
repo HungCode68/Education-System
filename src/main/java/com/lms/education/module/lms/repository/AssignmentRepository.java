@@ -17,6 +17,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     List<Assignment> findByLessonClassesIdOrderByDueDateAsc(Long classId);
 
+    boolean existsByLessonId(Long lessonId);
+
     @Query("SELECT a FROM Assignment a WHERE " +
            "LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(a.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

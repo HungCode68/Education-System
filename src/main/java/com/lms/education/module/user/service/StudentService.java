@@ -20,4 +20,6 @@ public interface StudentService {
 
     // Cấp tài khoản tự động hàng loạt cho học viên
     java.util.Map<String, Object> provisionAccounts(com.lms.education.module.user.dto.StudentProvisionDto dto);
+
+    StudentDto getMyProfile(Long userId);
 }

@@ -38,4 +38,6 @@ public class TimetableEntryDto {
     
     private String status; // NORMAL, CANCELLED
     private String cancellationReason;
+    
+    private String attendanceStatus;
 }

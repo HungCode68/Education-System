@@ -12,7 +12,7 @@ public interface ClassAnnouncementService {
 
     ClassAnnouncementDto createAnnouncementWithFile(Long classId, String title, String content, Boolean isPinned, MultipartFile file);
 
-    ClassAnnouncementDto updateAnnouncement(Long id, ClassAnnouncementDto dto);
+    ClassAnnouncementDto updateAnnouncement(Long id, String title, String content, Boolean isPinned, Boolean removeAttachment, MultipartFile file);
 
     ClassAnnouncementDto togglePin(Long id, boolean isPinned);
 

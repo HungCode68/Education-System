@@ -23,7 +23,11 @@ public class SubmissionAnswerDto {
     @NotNull(message = "ID câu hỏi không được để trống")
     private Long questionId;
 
+    
     private Long selectedOptionId;
+
+    private String selectedOptionIds;
+
 
     private String textAnswer;
 
@@ -31,9 +35,16 @@ public class SubmissionAnswerDto {
 
     private Boolean isAutoGraded;
 
+    private BigDecimal maxScore;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private java.util.List<Long> correctOptionIds;
+
     // Rich display fields
     private String questionContent;
     private String questionType;
+    private String questionAttachmentUrl;
+    private java.util.List<QuestionOptionDto> options;
     private String selectedOptionContent;
     private Boolean isSelectedOptionCorrect;
 }

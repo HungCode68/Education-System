@@ -56,13 +56,18 @@ public class ClassAnnouncementController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_UPDATE')")
     @LogActivity(module = "ANNOUNCEMENT", action = "UPDATE", targetType = "class_announcement", description = "Cập nhật nội dung thông báo lớp học")
     public ResponseEntity<Map<String, Object>> updateAnnouncement(
             @PathVariable Long id,
-            @RequestBody ClassAnnouncementDto dto) {
-        ClassAnnouncementDto updated = classAnnouncementService.updateAnnouncement(id, dto);
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String content,
+            @RequestParam(required = false) Boolean isPinned,
+            @RequestParam(required = false, defaultValue = "false") Boolean removeAttachment,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
+        
+        ClassAnnouncementDto updated = classAnnouncementService.updateAnnouncement(id, title, content, isPinned, removeAttachment, file);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Cập nhật thông báo lớp học thành công!");
@@ -87,13 +92,11 @@ public class ClassAnnouncementController {
     }
 
     @GetMapping("/class/{classId}")
-    @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_VIEW')")
     public ResponseEntity<List<ClassAnnouncementDto>> getAnnouncementsByClass(@PathVariable Long classId) {
         return ResponseEntity.ok(classAnnouncementService.getAnnouncementsByClass(classId));
     }
 
     @GetMapping("/class/{classId}/paged")
-    @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_VIEW')")
     public ResponseEntity<Page<ClassAnnouncementDto>> getAnnouncementsByClassPaged(
             @PathVariable Long classId,
             @RequestParam(defaultValue = "0") int page,
@@ -102,7 +105,6 @@ public class ClassAnnouncementController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_VIEW')")
     public ResponseEntity<ClassAnnouncementDto> getAnnouncementById(@PathVariable Long id) {
         return ResponseEntity.ok(classAnnouncementService.getAnnouncementById(id));
     }

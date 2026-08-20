@@ -55,8 +55,7 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
             @Param("excludeId") Long excludeId
     );
 
-    @Query(value = "SELECT cs.* FROM class_schedules cs " +
-                   "INNER JOIN enrollments e ON cs.class_id = e.class_id " +
-                   "WHERE e.student_id = :studentId AND e.status = 'ACTIVE'", nativeQuery = true)
+    @Query("SELECT cs FROM ClassSchedule cs JOIN Enrollment e ON cs.classes.id = e.classes.id " +
+           "WHERE e.student.id = :studentId AND e.status = 'ACTIVE'")
     List<ClassSchedule> findSchedulesByStudentId(@Param("studentId") Long studentId);
 }
