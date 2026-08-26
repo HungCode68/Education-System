@@ -28,6 +28,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     List<Submission> findByStudentIdOrderBySubmittedAtDesc(Long studentId);
 
+    List<Submission> findTop5ByStudentIdOrderBySubmittedAtDesc(Long studentId);
+
     Page<Submission> findByAssignmentId(Long assignmentId, Pageable pageable);
 
     @Query("SELECT s FROM Submission s WHERE s.assignment.id = :assignmentId AND " +

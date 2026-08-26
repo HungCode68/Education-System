@@ -12,6 +12,10 @@ import com.lms.education.module.ai.repository.AiChatMessageRepository;
 import com.lms.education.module.ai.repository.AiChatSessionRepository;
 import com.lms.education.module.ai.repository.AiDocumentChunkRepository;
 import com.lms.education.module.ai.repository.ChunkSearchProjection;
+import com.lms.education.module.academic.entity.Course;
+import com.lms.education.module.academic.repository.CourseRepository;
+import com.lms.education.module.lms.entity.Submission;
+import com.lms.education.module.lms.repository.SubmissionRepository;
 import com.lms.education.module.user.entity.Student;
 import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.StudentRepository;
@@ -43,6 +47,8 @@ public class RagChatService {
     private final AiDocumentChunkRepository chunkRepository;
     private final AiChatSessionRepository sessionRepository;
     private final AiChatMessageRepository messageRepository;
+    private final SubmissionRepository submissionRepository;
+    private final CourseRepository courseRepository;
 
     private final ChatModel chatModel;
     private final EmbeddingModel embeddingModel;
@@ -220,16 +226,63 @@ public class RagChatService {
     }
 
     private String buildSystemPrompt(Student student) {
+        String performanceSummary = buildStudentPerformanceSummary(student.getId());
+        String availableCoursesSummary = buildAvailableCoursesSummary();
         return String.format(
             "Bạn là trợ lý ảo giáo dục thông minh của hệ thống LMS. " +
             "Bạn đang nói chuyện với học viên: %s (Mã HV: %s). " +
-            "Mục tiêu học tập của học viên là: %s. Trạng thái hiện tại: %s. " +
+            "Mục tiêu học tập của học viên là: %s. Trạng thái hiện tại: %s.\n" +
+            "%s\n" +
+            "%s\n" +
             "Hãy xưng hô phù hợp và hỗ trợ học viên một cách tốt nhất.",
             student.getFullName(),
             student.getStudentCode(),
             student.getTargetScore() != null ? student.getTargetScore() : "chưa xác định",
-            student.getStatus()
+            student.getStatus(),
+            performanceSummary,
+            availableCoursesSummary
         );
+    }
+
+    private String buildStudentPerformanceSummary(Long studentId) {
+        if (studentId == null) {
+            return "Chưa có dữ liệu bài làm.";
+        }
+        List<Submission> recentSubmissions = submissionRepository.findTop5ByStudentIdOrderBySubmittedAtDesc(studentId);
+        if (recentSubmissions == null || recentSubmissions.isEmpty()) {
+            return "Chưa có dữ liệu bài làm.";
+        }
+        
+        StringBuilder summary = new StringBuilder("Thông tin các bài làm gần đây của học viên:\n");
+        for (Submission sub : recentSubmissions) {
+            String assignmentTitle = (sub.getAssignment() != null && sub.getAssignment().getTitle() != null) 
+                    ? sub.getAssignment().getTitle() : "Bài tập không xác định";
+            String score = (sub.getScore() != null) ? sub.getScore().toString() : "Chưa có điểm";
+            String status = (sub.getStatus() != null) ? sub.getStatus() : "Không xác định";
+            String date = (sub.getSubmittedAt() != null) ? sub.getSubmittedAt().toString() : "Chưa nộp";
+            String feedback = (sub.getFeedback() != null && !sub.getFeedback().isEmpty()) ? " - Nhận xét: " + sub.getFeedback() : "";
+            
+            summary.append(String.format("- Bài tập: %s | Điểm: %s | Trạng thái: %s | Ngày nộp: %s%s\n",
+                    assignmentTitle, score, status, date, feedback));
+        }
+        return summary.toString();
+    }
+    private String buildAvailableCoursesSummary() {
+        List<Course> activeCourses = courseRepository.findByStatus("ACTIVE");
+        if (activeCourses == null || activeCourses.isEmpty()) {
+            return "Hiện tại không có khóa học nào đang mở.";
+        }
+
+        StringBuilder summary = new StringBuilder("Danh sách các khóa học hiện có để tư vấn:\n");
+        for (Course course : activeCourses) {
+            String title = (course.getName() != null) ? course.getName() : "Không xác định";
+            String desc = (course.getDescription() != null) ? course.getDescription() : "Không có mô tả";
+            if (desc.length() > 100) {
+                desc = desc.substring(0, 100) + "..."; // Tối ưu token
+            }
+            summary.append(String.format("- Tên khóa học: %s | Mục tiêu/Mô tả: %s\n", title, desc));
+        }
+        return summary.toString();
     }
 
     private String buildGenericSystemPrompt() {

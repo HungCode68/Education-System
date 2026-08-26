@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,6 +19,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     // Tìm kiếm chính xác theo mã khóa học
     Optional<Course> findByCode(String code);
+
+    // Lấy danh sách khóa học theo trạng thái
+    List<Course> findByStatus(String status);
 
     // Hỗ trợ tìm kiếm theo cả Tên và Mã khóa học
     @Query("SELECT c FROM Course c WHERE " +
