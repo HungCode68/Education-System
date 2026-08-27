@@ -43,4 +43,7 @@ public interface UserService {
 
     // Đặt lại mật khẩu tài khoản (dùng khi admin reset hộ người dùng quên mật khẩu)
     void resetPassword(Long id, String newPassword);
+
+    // Tự đổi mật khẩu của bản thân (yêu cầu mật khẩu cũ)
+    void changePassword(String oldPassword, String newPassword);
 }

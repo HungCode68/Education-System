@@ -21,6 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.lms.education.module.lms.repository.AssignmentQuestionRepository;
+import com.lms.education.module.lms.repository.SubmissionRepository;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -29,6 +32,8 @@ public class QuestionServiceImpl implements QuestionService {
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
     private final MinioStorageService minioStorageService;
+    private final AssignmentQuestionRepository assignmentQuestionRepository;
+    private final SubmissionRepository submissionRepository;
 
 
     private static final java.util.Set<String> VALID_QUESTION_TYPES = java.util.Set.of(
@@ -88,11 +93,21 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
 
+    private void checkSubmissionSafeguard(Long questionId) {
+        boolean hasSubmissions = assignmentQuestionRepository.findByQuestionId(questionId).stream()
+                .anyMatch(aq -> submissionRepository.existsByAssignmentId(aq.getAssignment().getId()));
+        if (hasSubmissions) {
+            throw new OperationNotPermittedException("Câu hỏi này đang được sử dụng trong bài tập đã có học viên làm bài, không thể thay đổi nội dung hoặc xóa!");
+        }
+    }
+
     @Override
     @Transactional
     public QuestionDto update(Long id, QuestionDto dto, MultipartFile mediaFile) {
         Question existing = questionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi với ID: " + id));
+
+        checkSubmissionSafeguard(id);
 
         String targetType = existing.getQuestionType();
         if (dto.getQuestionType() != null && !dto.getQuestionType().trim().isEmpty()) {
@@ -173,6 +188,8 @@ public class QuestionServiceImpl implements QuestionService {
     public void delete(Long id) {
         Question existing = questionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi với ID: " + id));
+
+        checkSubmissionSafeguard(id);
 
         if (existing.getMediaUrl() != null && !existing.getMediaUrl().isEmpty()) {
             minioStorageService.deleteFile(existing.getMediaUrl());

@@ -14,7 +14,7 @@ public interface ClassesService {
 
     ClassesDto getById(Long id);
 
-    Page<ClassesDto> getAllClasses(String keyword, Pageable pageable);
+    Page<ClassesDto> getAllClasses(String keyword, Long courseId, Long termId, Pageable pageable);
 
     java.util.List<ClassesDto> getMyClasses();
     

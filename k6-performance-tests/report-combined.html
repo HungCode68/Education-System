@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tổng Hợp Kết Quả K6</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: #e9ecef; 
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 { 
+            margin: 0; 
+            color: #212529; 
+            font-size: 2.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header p {
+            color: #6c757d;
+            font-size: 1.1rem;
+            margin-top: 5px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            /* Đặt chiều cao đủ lớn để hiển thị trọn vẹn dashboard bên trong */
+            height: 1200px; 
+        }
+        .report-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+        }
+        .report-card .card-header {
+            padding: 15px; 
+            text-align: center; 
+        }
+        .card-header.load { background: #198754; color: white; }
+        .card-header.spike { background: #dc3545; color: white; }
+        .card-header.stress { background: #fd7e14; color: white; }
+        
+        .report-card h2 {
+            margin: 0; 
+            font-size: 1.4rem;
+        }
+        .report-card p {
+            margin: 5px 0 0 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        iframe {
+            border: none;
+            width: 100%;
+            flex-grow: 1;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>BÁO CÁO TỔNG HỢP KIỂM THỬ HIỆU NĂNG</h1>
+        <p>So sánh tương quan giữa 3 kỹ thuật: Load Testing, Spike Testing và Stress Testing</p>
+    </div>
+
+    <div class="grid-container">
+        <!-- Cột 1: Load Test -->
+        <div class="report-card">
+            <div class="card-header load">
+                <h2>1. LOAD TEST</h2>
+                <p>20 Users / 5 Phút (Tải ổn định)</p>
+            </div>
+            <iframe src="report-load.html"></iframe>
+        </div>
+
+        <!-- Cột 2: Spike Test -->
+        <div class="report-card">
+            <div class="card-header spike">
+                <h2>2. SPIKE TEST</h2>
+                <p>100 Users / 1 Phút (Bão truy cập đột ngột)</p>
+            </div>
+            <iframe src="report-spike.html"></iframe>
+        </div>
+
+        <!-- Cột 3: Stress Test -->
+        <div class="report-card">
+            <div class="card-header stress">
+                <h2>3. STRESS TEST</h2>
+                <p>100 Users / 10 Phút (Tìm điểm gãy)</p>
+            </div>
+            <iframe src="report-stress.html"></iframe>
+        </div>
+    </div>
+</body>
+</html>

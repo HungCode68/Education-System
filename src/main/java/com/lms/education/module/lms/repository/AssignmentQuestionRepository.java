@@ -20,4 +20,6 @@ public interface AssignmentQuestionRepository extends JpaRepository<AssignmentQu
     void deleteByAssignmentIdAndQuestionId(Long assignmentId, Long questionId);
 
     boolean existsByAssignmentIdAndQuestionId(Long assignmentId, Long questionId);
+
+    List<AssignmentQuestion> findByQuestionId(Long questionId);
 }

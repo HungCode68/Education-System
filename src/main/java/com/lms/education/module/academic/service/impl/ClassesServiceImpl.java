@@ -168,14 +168,12 @@ public class ClassesServiceImpl implements ClassesService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ClassesDto> getAllClasses(String keyword, Pageable pageable) {
-        Page<Classes> classes;
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            classes = classesRepository.searchClasses(keyword.trim(), pageable);
-        } else {
-            classes = classesRepository.findAll(pageable);
+    public Page<ClassesDto> getAllClasses(String keyword, Long courseId, Long termId, Pageable pageable) {
+        if (keyword == null) {
+            keyword = "";
         }
-        return classes.map(this::mapToDto);
+        Page<Classes> classesPage = classesRepository.searchClasses(keyword, courseId, termId, pageable);
+        return classesPage.map(this::mapToDto);
     }
 
     @Override

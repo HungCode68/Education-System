@@ -8,6 +8,6 @@ class EducationSystemApplicationTests {
 
     @Test
     void contextLoads() {
+        System.out.println("BCRYPT HASH FOR 123456: " + new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("123456"));
     }
-
 }

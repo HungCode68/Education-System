@@ -25,7 +25,7 @@ public class ClassAnnouncementController {
     private final ClassAnnouncementService classAnnouncementService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_CREATE')")
+    @PreAuthorize("hasAnyAuthority('LMS_ANNOUNCEMENT_CREATE')")
     @LogActivity(module = "ANNOUNCEMENT", action = "CREATE", targetType = "class_announcement", description = "Tạo mới thông báo lớp học")
     public ResponseEntity<Map<String, Object>> createAnnouncement(@Valid @RequestBody ClassAnnouncementDto dto) {
         ClassAnnouncementDto saved = classAnnouncementService.createAnnouncement(dto);
@@ -38,7 +38,7 @@ public class ClassAnnouncementController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_CREATE')")
+    @PreAuthorize("hasAnyAuthority('LMS_ANNOUNCEMENT_CREATE')")
     @LogActivity(module = "ANNOUNCEMENT", action = "CREATE", targetType = "class_announcement", description = "Tạo mới thông báo lớp học kèm tệp đính kèm")
     public ResponseEntity<Map<String, Object>> createAnnouncementWithFile(
             @RequestParam("classId") Long classId,
@@ -57,7 +57,7 @@ public class ClassAnnouncementController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('LMS_ANNOUNCEMENT_UPDATE')")
     @LogActivity(module = "ANNOUNCEMENT", action = "UPDATE", targetType = "class_announcement", description = "Cập nhật nội dung thông báo lớp học")
     public ResponseEntity<Map<String, Object>> updateAnnouncement(
             @PathVariable Long id,
@@ -77,7 +77,7 @@ public class ClassAnnouncementController {
     }
 
     @PatchMapping("/{id}/pin")
-    @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('LMS_ANNOUNCEMENT_UPDATE')")
     @LogActivity(module = "ANNOUNCEMENT", action = "UPDATE", targetType = "class_announcement", description = "Ghim / bỏ ghim thông báo lớp học")
     public ResponseEntity<Map<String, Object>> togglePin(
             @PathVariable Long id,
@@ -92,11 +92,13 @@ public class ClassAnnouncementController {
     }
 
     @GetMapping("/class/{classId}")
+    @PreAuthorize("hasAnyAuthority('LMS_ANNOUNCEMENT_VIEW')")
     public ResponseEntity<List<ClassAnnouncementDto>> getAnnouncementsByClass(@PathVariable Long classId) {
         return ResponseEntity.ok(classAnnouncementService.getAnnouncementsByClass(classId));
     }
 
     @GetMapping("/class/{classId}/paged")
+    @PreAuthorize("hasAnyAuthority('LMS_ANNOUNCEMENT_VIEW')")
     public ResponseEntity<Page<ClassAnnouncementDto>> getAnnouncementsByClassPaged(
             @PathVariable Long classId,
             @RequestParam(defaultValue = "0") int page,
@@ -105,12 +107,13 @@ public class ClassAnnouncementController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('LMS_ANNOUNCEMENT_VIEW')")
     public ResponseEntity<ClassAnnouncementDto> getAnnouncementById(@PathVariable Long id) {
         return ResponseEntity.ok(classAnnouncementService.getAnnouncementById(id));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ANNOUNCEMENT_DELETE')")
+    @PreAuthorize("hasAnyAuthority('LMS_ANNOUNCEMENT_DELETE')")
     @LogActivity(module = "ANNOUNCEMENT", action = "DELETE", targetType = "class_announcement", description = "Xóa thông báo lớp học")
     public ResponseEntity<Map<String, Object>> deleteAnnouncement(@PathVariable Long id) {
         classAnnouncementService.deleteAnnouncement(id);

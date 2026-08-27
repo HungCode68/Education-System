@@ -77,6 +77,12 @@ public class UserServiceImpl implements UserService {
                 .status("ACTIVE")
                 .build();
 
+        if (userDto.getRoles() != null) {
+            user.setRoles(resolveRoles(new java.util.ArrayList<>(userDto.getRoles())));
+        } else {
+            user.setRoles(new HashSet<>());
+        }
+
         User savedUser = userRepository.save(user);
         return mapToDto(savedUser);
     }
@@ -172,6 +178,24 @@ public class UserServiceImpl implements UserService {
         user.setRefreshToken(null);
         user.setExpiryDate(null);
 
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(String oldPassword, String newPassword) {
+        String currentUserEmail = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng hiện tại"));
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new org.springframework.security.authentication.BadCredentialsException("Mật khẩu cũ không chính xác");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        // Xóa refresh token để các phiên đăng nhập khác bị đăng xuất
+        user.setRefreshToken(null);
+        user.setExpiryDate(null);
         userRepository.save(user);
     }
 

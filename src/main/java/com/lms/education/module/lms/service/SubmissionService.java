@@ -21,6 +21,8 @@ public interface SubmissionService {
 
     List<SubmissionDto> getMySubmissionHistory(Long assignmentId);
 
+    List<SubmissionDto> getMySubmissionsByClassId(Long classId);
+
     List<SubmissionDto> getByAssignmentId(Long assignmentId);
 
     List<SubmissionDto> getByStudentId(Long studentId);

@@ -75,15 +75,21 @@ public class SubmissionController {
     }
 
     @GetMapping("/my-submission/{assignmentId}")
-    @PreAuthorize("hasAuthority('LMS_SUBMISSION_VIEW')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SubmissionDto> getMySubmission(@PathVariable Long assignmentId) {
         return ResponseEntity.ok(submissionService.getMySubmission(assignmentId));
     }
 
     @GetMapping("/my-history/{assignmentId}")
-    @PreAuthorize("hasAuthority('LMS_SUBMISSION_VIEW')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<SubmissionDto>> getMyHistory(@PathVariable Long assignmentId) {
         return ResponseEntity.ok(submissionService.getMySubmissionHistory(assignmentId));
+    }
+
+    @GetMapping("/my-submissions/class/{classId}")
+    @PreAuthorize("hasAuthority('LMS_SUBMISSION_VIEW')")
+    public ResponseEntity<List<SubmissionDto>> getMySubmissionsByClassId(@PathVariable Long classId) {
+        return ResponseEntity.ok(submissionService.getMySubmissionsByClassId(classId));
     }
 
     @GetMapping("/assignment/{assignmentId}")

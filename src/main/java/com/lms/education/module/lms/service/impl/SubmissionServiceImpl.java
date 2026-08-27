@@ -74,6 +74,15 @@ public class SubmissionServiceImpl implements SubmissionService {
                 return mapToDto(existing);
             }
 
+            if ("MISSING".equalsIgnoreCase(existing.getStatus())) {
+                log.info("Học viên {} làm bù bài tập ID: {} (Ghi đè trạng thái MISSING)", student.getFullName(), assignmentId);
+                existing.setStatus("IN_PROGRESS");
+                existing.setStartTime(LocalDateTime.now());
+                existing.setScore(null);
+                existing.setFeedback(null);
+                return mapToDto(submissionRepository.save(existing));
+            }
+
             if (attemptCount >= assignment.getMaxAttempts()) {
                 throw new OperationNotPermittedException("Bạn đã vượt quá số lần làm bài cho phép (" + assignment.getMaxAttempts() + " lần)!");
             }
@@ -215,6 +224,19 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Transactional(readOnly = true)
     public List<SubmissionDto> getByStudentId(Long studentId) {
         return submissionRepository.findByStudentIdOrderBySubmittedAtDesc(studentId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDto> getMySubmissionsByClassId(Long classId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = getCurrentUser(auth);
+        Student student = getCurrentStudent(currentUser);
+
+        return submissionRepository.findByStudentIdOrderBySubmittedAtDesc(student.getId()).stream()
+                .filter(sub -> sub.getAssignment().getLesson().getClasses().getId().equals(classId))
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }

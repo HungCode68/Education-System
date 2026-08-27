@@ -18,7 +18,11 @@ public interface ClassesRepository extends JpaRepository<Classes, Long> {
     Optional<Classes> findByCode(String code);
 
     @Query("SELECT c FROM Classes c WHERE " +
-           "LOWER(c.code) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    Page<Classes> searchClasses(@Param("keyword") String keyword, Pageable pageable);
+           "(:courseId IS NULL OR c.course.id = :courseId) AND " +
+           "(:termId IS NULL OR c.term.id = :termId) AND " +
+           "(LOWER(c.code) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Classes> searchClasses(@Param("keyword") String keyword, @Param("courseId") Long courseId, @Param("termId") Long termId, Pageable pageable);
+    @Query("SELECT c.id FROM Classes c WHERE c.course.id = :courseId")
+    java.util.List<Long> findIdsByCourseId(@Param("courseId") Long courseId);
 }

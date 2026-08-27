@@ -86,6 +86,19 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/me/change-password")
+    @PreAuthorize("isAuthenticated()")
+    @LogActivity(module = "USER", action = "UPDATE", targetType = "user", description = "Tự đổi mật khẩu tài khoản")
+    public ResponseEntity<Map<String, String>> changePassword(
+            @Valid @RequestBody com.lms.education.module.user.dto.ChangePasswordRequest request) {
+        
+        userService.changePassword(request.getOldPassword(), request.getNewPassword());
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Đổi mật khẩu thành công!");
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ACCOUNT_DELETE')")
     @LogActivity(module = "USER", action = "DELETE", targetType = "user", description = "Thu hồi/Xóa tài khoản")

@@ -28,7 +28,7 @@ public class LearningMaterialController {
     private final LearningMaterialService learningMaterialService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('MATERIAL_CREATE')")
+    @PreAuthorize("hasAuthority('MATERIAL_CREATE') or hasPermission(#lessonId, 'Lesson', 'MANAGE')")
     @LogActivity(module = "LMS", action = "UPLOAD_FILE", targetType = "learning_material", description = "Tải lên tệp tài liệu")
     public ResponseEntity<Map<String, Object>> uploadFileMaterial(
             @RequestParam(value = "courseId", required = false) Long courseId,
@@ -65,7 +65,7 @@ public class LearningMaterialController {
     }
 
     @PostMapping("/link")
-    @PreAuthorize("hasAuthority('MATERIAL_CREATE')")
+    @PreAuthorize("hasAuthority('MATERIAL_CREATE') or hasPermission(#dto.lessonId, 'Lesson', 'MANAGE')")
     @LogActivity(module = "LMS", action = "ADD_LINK", targetType = "learning_material", description = "Thêm liên kết tài liệu từ bên ngoài")
     public ResponseEntity<Map<String, Object>> createExternalLinkMaterial(@Valid @RequestBody LearningMaterialDto dto) {
         LearningMaterialDto created = learningMaterialService.createExternalLink(dto);
@@ -78,7 +78,7 @@ public class LearningMaterialController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('MATERIAL_UPDATE')")
+    @PreAuthorize("hasAuthority('MATERIAL_UPDATE') or hasPermission(#id, 'LearningMaterial', 'MANAGE')")
     @LogActivity(module = "LMS", action = "UPDATE", targetType = "learning_material", description = "Cập nhật tài liệu học tập")
     public ResponseEntity<Map<String, Object>> updateMaterial(
             @PathVariable Long id,
@@ -115,7 +115,7 @@ public class LearningMaterialController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('MATERIAL_UPDATE')")
+    @PreAuthorize("hasAuthority('MATERIAL_UPDATE') or hasPermission(#id, 'LearningMaterial', 'MANAGE')")
     @LogActivity(module = "LMS", action = "UPDATE", targetType = "learning_material", description = "Cập nhật tài liệu học tập (JSON)")
     public ResponseEntity<Map<String, Object>> updateMaterialJson(
             @PathVariable Long id,
@@ -131,7 +131,7 @@ public class LearningMaterialController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('MATERIAL_DELETE')")
+    @PreAuthorize("hasAuthority('MATERIAL_DELETE') or hasPermission(#id, 'LearningMaterial', 'MANAGE')")
     @LogActivity(module = "LMS", action = "DELETE", targetType = "learning_material", description = "Xóa tài liệu học tập")
     public ResponseEntity<Map<String, String>> deleteMaterial(@PathVariable Long id) {
         learningMaterialService.delete(id);
@@ -143,25 +143,25 @@ public class LearningMaterialController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('MATERIAL_VIEW')")
+    @PreAuthorize("hasAuthority('MATERIAL_VIEW') or hasPermission(#id, 'LearningMaterial', 'READ')")
     public ResponseEntity<LearningMaterialDto> getMaterialById(@PathVariable Long id) {
         return ResponseEntity.ok(learningMaterialService.getById(id));
     }
 
     @GetMapping("/lesson/{lessonId}")
-    @PreAuthorize("hasAuthority('MATERIAL_VIEW')")
+    @PreAuthorize("hasAuthority('MATERIAL_VIEW') or hasPermission(#lessonId, 'Lesson', 'READ')")
     public ResponseEntity<List<LearningMaterialDto>> getMaterialsByLessonId(@PathVariable Long lessonId) {
         return ResponseEntity.ok(learningMaterialService.getByLessonId(lessonId));
     }
 
     @GetMapping("/course/{courseId}")
-    @PreAuthorize("hasAuthority('MATERIAL_VIEW')")
+    @PreAuthorize("hasAuthority('MATERIAL_VIEW') or hasPermission(#courseId, 'Course', 'READ')")
     public ResponseEntity<List<LearningMaterialDto>> getMaterialsByCourseId(@PathVariable Long courseId) {
         return ResponseEntity.ok(learningMaterialService.getByCourseId(courseId));
     }
 
     @GetMapping("/class/{classId}")
-    @PreAuthorize("hasAuthority('MATERIAL_VIEW')")
+    @PreAuthorize("hasAuthority('MATERIAL_VIEW') or hasPermission(#classId, 'Classes', 'READ')")
     public ResponseEntity<List<LearningMaterialDto>> getMaterialsByClassId(@PathVariable Long classId) {
         return ResponseEntity.ok(learningMaterialService.getByClassId(classId));
     }

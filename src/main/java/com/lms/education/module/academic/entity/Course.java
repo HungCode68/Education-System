@@ -1,6 +1,9 @@
 package com.lms.education.module.academic.entity;
 
+
+import com.lms.education.security.SecurityResource;
 import jakarta.persistence.*;
+
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -18,7 +21,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Course {
+public class Course implements SecurityResource {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,4 +63,10 @@ public class Course {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+
+    @Override
+    public Long extractCourseId() {
+        return this.id;
+    }
 }

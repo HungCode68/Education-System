@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -39,6 +40,19 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
                                                    @Param("status") String status, 
                                                    @Param("keyword") String keyword, 
                                                    Pageable pageable);
+
+    @Modifying
+    @Query(value = "INSERT INTO submissions (assignment_id, student_id, score, status, submitted_at, updated_at) " +
+                   "SELECT a.id, cs.student_id, 0, 'MISSING', NOW(), NOW() " +
+                   "FROM assignments a " +
+                   "JOIN lessons l ON a.lesson_id = l.id " +
+                   "JOIN enrollments cs ON l.class_id = cs.class_id AND cs.status = 'ACTIVE' " +
+                   "WHERE a.due_date < NOW() " +
+                   "AND a.status = 'PUBLISHED' " +
+                   "AND NOT EXISTS ( " +
+                   "    SELECT 1 FROM submissions s WHERE s.assignment_id = a.id AND s.student_id = cs.student_id " +
+                   ")", nativeQuery = true)
+    int insertMissingSubmissions();
 
     @Query("SELECT AVG(s.score) FROM Submission s WHERE s.assignment.lesson.classes.id = :classId AND s.score IS NOT NULL")
     Double calculateAverageScoreByClassId(@Param("classId") Long classId);

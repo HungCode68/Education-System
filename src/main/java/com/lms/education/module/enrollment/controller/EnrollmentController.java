@@ -97,7 +97,7 @@ public class EnrollmentController {
     }
 
     @GetMapping("/class/{classId}")
-    @PreAuthorize("hasAuthority('ENROLLMENT_VIEW')")
+    @PreAuthorize("hasAuthority('ENROLLMENT_VIEW') or hasPermission(#classId, 'Classes', 'READ')")
     public ResponseEntity<List<EnrollmentDto>> getByClassId(@PathVariable Long classId) {
         return ResponseEntity.ok(enrollmentService.getByClassId(classId));
     }

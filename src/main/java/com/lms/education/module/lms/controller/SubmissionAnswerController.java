@@ -22,7 +22,7 @@ public class SubmissionAnswerController {
     private final SubmissionAnswerService submissionAnswerService;
 
     @GetMapping("/submission/{submissionId}")
-    @PreAuthorize("hasAnyAuthority('LMS_SUBMISSION_VIEW', 'LMS_SUBMISSION_CREATE', 'LMS_SUBMISSION_UPDATE', 'LMS_SUBMISSION_SUBMIT')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<SubmissionAnswerDto>> getAnswersBySubmissionId(@PathVariable Long submissionId) {
         return ResponseEntity.ok(submissionAnswerService.getAnswersBySubmissionId(submissionId));
     }

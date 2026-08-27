@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K6 Summary Compact</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 40px;
+            color: #333;
+            background-color: #fff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 40px;
+            border-left: 4px solid #ccc;
+            padding-left: 15px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            color: #222;
+        }
+        .subtext {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+        }
+        h2 {
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin: 30px 0 15px 0;
+            color: #222;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        th, td {
+            padding: 8px 15px;
+            text-align: right;
+        }
+        th:first-child, td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            width: 30%; /* Control width to bring columns closer */
+        }
+        th {
+            font-weight: 700;
+            color: #444;
+            border-bottom: 1px solid #ddd;
+        }
+        tbody tr:nth-child(odd) {
+            background-color: #f8f9fa;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #fff;
+        }
+        /* Grouping tables at the bottom */
+        .bottom-tables {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .bottom-tables > div {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Summary</h1>
+            <p class="subtext">This chapter provides a summary of the test run metrics. The tables contains the aggregated values of the metrics for the entire test run.</p>
+        </div>
+
+        <h2>Trends</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>metric</th>
+                    <th>avg</th>
+                    <th>max</th>
+                    <th>med</th>
+                    <th>min</th>
+                    <th>p90</th>
+                    <th>p95</th>
+                    <th>p99</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>group_duration</td>
+                    <td>3s</td>
+                    <td>10s</td>
+                    <td>77ms</td>
+                    <td>12ms</td>
+                    <td>9s</td>
+                    <td>9s</td>
+                    <td>10s</td>
+                </tr>
+                <tr>
+                    <td>http_req_blocked</td>
+                    <td>163µs</td>
+                    <td>59ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>506µs</td>
+                </tr>
+                <tr>
+                    <td>http_req_connecting</td>
+                    <td>76µs</td>
+                    <td>48ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                </tr>
+                <tr>
+                    <td>http_req_duration</td>
+                    <td>135ms</td>
+                    <td>1s</td>
+                    <td>80ms</td>
+                    <td>5ms</td>
+                    <td>315ms</td>
+                    <td>457ms</td>
+                    <td>791ms</td>
+                </tr>
+                <tr>
+                    <td>http_req_receiving</td>
+                    <td>328µs</td>
+                    <td>13ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>996µs</td>
+                    <td>1ms</td>
+                    <td>5ms</td>
+                </tr>
+                <tr>
+                    <td>http_req_sending</td>
+                    <td>22µs</td>
+                    <td>5ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>655µs</td>
+                </tr>
+                <tr>
+                    <td>http_req_tls_handshaking</td>
+                    <td>83µs</td>
+                    <td>22ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                    <td>0ms</td>
+                </tr>
+                <tr>
+                    <td>http_req_waiting</td>
+                    <td>135ms</td>
+                    <td>1s</td>
+                    <td>79ms</td>
+                    <td>5ms</td>
+                    <td>315ms</td>
+                    <td>456ms</td>
+                    <td>791ms</td>
+                </tr>
+                <tr>
+                    <td>iteration_duration</td>
+                    <td>6s</td>
+                    <td>12s</td>
+                    <td>3s</td>
+                    <td>1s</td>
+                    <td>11s</td>
+                    <td>12s</td>
+                    <td>12s</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="bottom-tables">
+            <div>
+                <h2>Counters</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>metric</th>
+                            <th>count</th>
+                            <th>rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>data_received</td>
+                            <td>3.21 MB</td>
+                            <td>10.6 kB/s</td>
+                        </tr>
+                        <tr>
+                            <td>data_sent</td>
+                            <td>858 kB</td>
+                            <td>2.83 kB/s</td>
+                        </tr>
+                        <tr>
+                            <td>http_reqs</td>
+                            <td>2.8k</td>
+                            <td>9.17/s</td>
+                        </tr>
+                        <tr>
+                            <td>iterations</td>
+                            <td>815</td>
+                            <td>2.68/s</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div>
+                <h2>Rates</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>metric</th>
+                            <th>rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>checks</td>
+                            <td>1/s</td>
+                        </tr>
+                        <tr>
+                            <td>http_req_failed</td>
+                            <td>0/s</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div>
+                <h2>Gauges</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>metric</th>
+                            <th>value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>vus</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td>vus_max</td>
+                            <td>20</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

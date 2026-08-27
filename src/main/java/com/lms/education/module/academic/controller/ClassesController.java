@@ -66,7 +66,7 @@ public class ClassesController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('CLASS_VIEW')")
+    @PreAuthorize("hasAuthority('CLASS_VIEW') or hasPermission(#id, 'Classes', 'READ')")
     public ResponseEntity<ClassesDto> getClassById(@PathVariable Long id) {
         return ResponseEntity.ok(classesService.getById(id));
     }
@@ -75,6 +75,8 @@ public class ClassesController {
     @PreAuthorize("hasAuthority('CLASS_VIEW')")
     public ResponseEntity<Page<ClassesDto>> getAllClasses(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long termId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "code") String sortBy,
@@ -85,7 +87,7 @@ public class ClassesController {
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        return ResponseEntity.ok(classesService.getAllClasses(keyword, pageable));
+        return ResponseEntity.ok(classesService.getAllClasses(keyword, courseId, termId, pageable));
     }
 
     @GetMapping("/my-classes")

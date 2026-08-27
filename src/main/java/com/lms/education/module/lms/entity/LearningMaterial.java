@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+import com.lms.education.security.SecurityResource;
+
 @Entity
 @Table(name = "learning_materials")
 @Getter
@@ -15,7 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LearningMaterial {
+public class LearningMaterial implements SecurityResource {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,4 +74,11 @@ public class LearningMaterial {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+    @Override
+    public Long extractClassId() {
+        if (this.lesson != null && this.lesson.getClasses() != null) {
+            return this.lesson.getClasses().getId();
+        }
+        return null;
+    }
 }
