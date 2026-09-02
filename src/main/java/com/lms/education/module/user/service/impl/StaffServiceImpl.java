@@ -37,6 +37,10 @@ public class StaffServiceImpl implements StaffService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @org.springframework.context.annotation.Lazy
+    @org.springframework.beans.factory.annotation.Autowired
+    private StaffService self;
+
     @Override
     @Transactional
     public StaffDto create(StaffDto dto) {
@@ -152,8 +156,42 @@ public class StaffServiceImpl implements StaffService {
     public void delete(Long id) {
         Staff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ nhân sự với ID: " + id));
+        
+        User user = staff.getUser();
+        // Ngắt liên kết để tránh lỗi JPA Cascade (Dù CSDL có ON DELETE CASCADE, nhưng báo trước cho Hibernate)
+        staff.setUser(null);
         staffRepository.delete(staff);
-        log.info("Đã xóa hoàn toàn hồ sơ nhân sự ID: {}", id);
+        
+        if (user != null) {
+            userRepository.delete(user);
+        }
+        
+        log.info("Đã xóa hoàn toàn hồ sơ nhân sự ID: {} và tài khoản User liên quan", id);
+    }
+
+    @Override
+    public Map<String, Object> deleteMultiple(List<Long> ids) {
+        int successCount = 0;
+        int skipCount = 0;
+
+        for (Long id : ids) {
+            try {
+                self.delete(id);
+                successCount++;
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                log.warn("Bỏ qua nhân sự ID {} vì vướng dữ liệu liên quan (Foreign Key)", id);
+                skipCount++;
+            } catch (Exception e) {
+                log.error("Lỗi khi xóa nhân sự ID {}: {}", id, e.getMessage());
+                skipCount++;
+            }
+        }
+
+        Map<String, Object> report = new HashMap<>();
+        report.put("success", successCount);
+        report.put("skipped", skipCount);
+        report.put("totalProcessed", ids.size());
+        return report;
     }
 
     @Override

@@ -297,4 +297,33 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
         return report;
     }
+
+    @Override
+    @Transactional
+    public void handleStudentStatusCascade(Long studentId, String globalStatus) {
+        if (!"DROPPED".equalsIgnoreCase(globalStatus) && !"RESERVED".equalsIgnoreCase(globalStatus)) {
+            return;
+        }
+
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
+        int cascadeCount = 0;
+
+        for (Enrollment e : enrollments) {
+            if ("ACTIVE".equalsIgnoreCase(e.getStatus()) || "PENDING".equalsIgnoreCase(e.getStatus())) {
+                decrementCapacity(e.getClasses());
+                e.setStatus("DROPPED");
+                
+                String currentNote = e.getNote() != null ? e.getNote() + " | " : "";
+                e.setNote(currentNote + "Hệ thống tự động hủy lớp do học viên chuyển trạng thái thành: " + globalStatus);
+                
+                enrollmentRepository.save(e);
+                cascadeCount++;
+                log.info("Đã tự động cập nhật trạng thái DROPPED cho học viên ID {} tại lớp {}", studentId, e.getClasses().getName());
+            }
+        }
+        
+        if (cascadeCount > 0) {
+            log.info("Đã đồng bộ hủy trạng thái (DROPPED) cho {} lớp học của học viên ID {}", cascadeCount, studentId);
+        }
+    }
 }

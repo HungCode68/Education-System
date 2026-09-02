@@ -84,7 +84,7 @@ public class ActivityLogServiceImplTest {
         when(attributes.getRequest()).thenReturn(request);
         RequestContextHolder.setRequestAttributes(attributes);
 
-        activityLogService.logAction("TEST_MODULE", "CREATE", "TEST_TYPE", "1", "details", ActivityLog.LogStatus.success);
+        activityLogService.logAction("TEST_MODULE", "CREATE", "TEST_TYPE", "1", null, null, "details", ActivityLog.LogStatus.success);
 
         verify(activityLogRepository).save(any(ActivityLog.class));
         
@@ -97,7 +97,7 @@ public class ActivityLogServiceImplTest {
         SecurityContextHolder.clearContext();
         RequestContextHolder.resetRequestAttributes();
 
-        activityLogService.logAction("TEST_MODULE", "CREATE", "TEST_TYPE", "1", "details", ActivityLog.LogStatus.success);
+        activityLogService.logAction("TEST_MODULE", "CREATE", "TEST_TYPE", "1", null, null, "details", ActivityLog.LogStatus.success);
 
         verify(activityLogRepository).save(any(ActivityLog.class));
     }
@@ -109,7 +109,7 @@ public class ActivityLogServiceImplTest {
 
         // Should not throw exception
         assertDoesNotThrow(() -> {
-            activityLogService.logAction("TEST_MODULE", "CREATE", "TEST_TYPE", "1", "details", ActivityLog.LogStatus.success);
+            activityLogService.logAction("TEST_MODULE", "CREATE", "TEST_TYPE", "1", null, null, "details", ActivityLog.LogStatus.success);
         });
     }
 

@@ -42,6 +42,8 @@ public class ActivityLogAspect {
                 logActivity.action(),
                 logActivity.targetType(),
                 null,
+                null,
+                null,
                 detailsJson,
                 ActivityLog.LogStatus.success
         );
@@ -63,6 +65,8 @@ public class ActivityLogAspect {
                 logActivity.module(),
                 logActivity.action(),
                 logActivity.targetType(),
+                null,
+                null,
                 null,
                 detailsJson,
                 ActivityLog.LogStatus.error

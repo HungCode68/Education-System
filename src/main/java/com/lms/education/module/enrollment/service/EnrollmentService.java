@@ -25,4 +25,6 @@ public interface EnrollmentService {
     List<EnrollmentDto> getByClassId(Long classId);
 
     Map<String, Object> enrollBulk(BulkEnrollmentDto dto);
+
+    void handleStudentStatusCascade(Long studentId, String globalStatus);
 }

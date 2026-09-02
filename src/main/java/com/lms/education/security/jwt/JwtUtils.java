@@ -50,7 +50,15 @@ public class JwtUtils {
 
     // Tạo Cookie chứa Refresh Token ---
     public ResponseCookie generateRefreshJwtCookie(String refreshToken) {
-        return generateCookie(jwtRefreshCookie, refreshToken, "/api/v1/auth");
+        // Bọc Refresh Token (UUID) vào JWT
+        String wrappedToken = Jwts.builder()
+                .subject(refreshToken)
+                .issuedAt(new Date())
+                // Thời hạn 7 ngày, khớp với thời hạn trong Database
+                .expiration(new Date((new Date()).getTime() + 7L * 24 * 60 * 60 * 1000))
+                .signWith(key())
+                .compact();
+        return generateCookie(jwtRefreshCookie, wrappedToken, "/api/v1/auth");
     }
 
     // Lấy Token từ Cookies ---
@@ -59,7 +67,20 @@ public class JwtUtils {
     }
 
     public String getJwtRefreshFromCookies(HttpServletRequest request) {
-        return getCookieValueByName(request, jwtRefreshCookie);
+        String value = getCookieValueByName(request, jwtRefreshCookie);
+        if (value == null) return null;
+
+        // Tương thích ngược: Nếu Cookie chứa UUID cũ (Không có dấu chấm của JWT)
+        if (!value.contains(".")) {
+            return value;
+        }
+
+        // Nếu là Token mới đã được bọc JWT, xác thực chữ ký và mở lấy UUID
+        if (validateJwtToken(value)) {
+            return getSubjectFromJwtToken(value); // Subject chính là UUID
+        }
+
+        return null;
     }
 
     // Xóa Cookies (khi Logout)
@@ -110,7 +131,7 @@ public class JwtUtils {
         return false;
     }
 
-    public String getEmailFromJwtToken(String token) {
+    public String getSubjectFromJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith((javax.crypto.SecretKey) key())
                 .build()

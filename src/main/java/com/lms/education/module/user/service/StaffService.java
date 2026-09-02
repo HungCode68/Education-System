@@ -14,6 +14,8 @@ public interface StaffService {
 
     void delete(Long id);
 
+    java.util.Map<String, Object> deleteMultiple(java.util.List<Long> ids);
+
     StaffDto getById(Long id);
 
     StaffDto getByStaffCode(String staffCode);

@@ -124,6 +124,11 @@ public class AuthController {
                     String newAccessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
 
                     UserPrincipal principal = UserPrincipal.create(user);
+                    
+                    // Set SecurityContext so that @LogActivity can capture the user details
+                    UsernamePasswordAuthenticationToken authentication = 
+                            new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
 
                     Map<String, Object> body = new HashMap<>();
                     body.put("message", "Làm mới phiên thành công!");

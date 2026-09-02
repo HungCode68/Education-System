@@ -66,6 +66,19 @@ public class StudentController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/batch")
+    @PreAuthorize("hasAuthority('STUDENT_DELETE')")
+    @LogActivity(module = "STUDENT", action = "DELETE_BATCH", targetType = "student", description = "Xóa hàng loạt học viên")
+    public ResponseEntity<Map<String, Object>> deleteMultipleStudents(@RequestBody java.util.List<Long> ids) {
+        Map<String, Object> report = studentService.deleteMultiple(ids);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Tiến trình xóa hàng loạt đã hoàn tất!");
+        response.put("data", report);
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('STUDENT_VIEW')")
     public ResponseEntity<StudentDto> getStudentById(@PathVariable Long id) {

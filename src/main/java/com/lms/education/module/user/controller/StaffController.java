@@ -66,6 +66,19 @@ public class StaffController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/batch")
+    @PreAuthorize("hasAuthority('STAFF_DELETE')")
+    @LogActivity(module = "STAFF", action = "DELETE_BATCH", targetType = "staff", description = "Xóa hàng loạt nhân sự")
+    public ResponseEntity<Map<String, Object>> deleteMultipleStaffs(@RequestBody java.util.List<Long> ids) {
+        Map<String, Object> report = staffService.deleteMultiple(ids);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Tiến trình xóa hàng loạt đã hoàn tất!");
+        response.put("data", report);
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/teachers")
     @PreAuthorize("hasAuthority('STAFF_VIEW')")
     public ResponseEntity<java.util.List<StaffDto>> getTeachers() {

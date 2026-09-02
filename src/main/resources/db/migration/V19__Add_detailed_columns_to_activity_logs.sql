@@ -1,0 +1,5 @@
+ALTER TABLE activity_logs
+ADD COLUMN method VARCHAR(10) NULL,
+ADD COLUMN endpoint VARCHAR(255) NULL,
+ADD COLUMN old_value JSON NULL,
+ADD COLUMN new_value JSON NULL;

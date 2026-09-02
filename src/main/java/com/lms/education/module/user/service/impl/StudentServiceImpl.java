@@ -34,6 +34,10 @@ public class StudentServiceImpl implements StudentService {
     private final RoleRepository roleRepository;
     private final com.lms.education.module.enrollment.repository.EnrollmentRepository enrollmentRepository;
 
+    @org.springframework.context.annotation.Lazy
+    @org.springframework.beans.factory.annotation.Autowired
+    private StudentService self;
+
     @Override
     @Transactional
     public StudentDto create(StudentDto dto) {
@@ -79,6 +83,10 @@ public class StudentServiceImpl implements StudentService {
         return mapToDto(savedStudent);
     }
 
+    @org.springframework.context.annotation.Lazy
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.lms.education.module.enrollment.service.EnrollmentService enrollmentService;
+
     @Override
     @Transactional
     public StudentDto update(Long id, StudentDto dto) {
@@ -106,12 +114,22 @@ public class StudentServiceImpl implements StudentService {
         student.setIdentityNumber(dto.getIdentityNumber());
         student.setTargetScore(dto.getTargetScore());
 
+        String oldStatus = student.getStatus();
+        
         // Cập nhật trạng thái
         if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
             student.setStatus(dto.getStatus().toUpperCase());
         }
 
         Student updatedStudent = studentRepository.save(student);
+        
+        // Kích hoạt đồng bộ trạng thái lớp học (Cascade)
+        String newStatus = updatedStudent.getStatus();
+        if (newStatus != null && !newStatus.equalsIgnoreCase(oldStatus) && 
+            ("DROPPED".equalsIgnoreCase(newStatus) || "RESERVED".equalsIgnoreCase(newStatus))) {
+            enrollmentService.handleStudentStatusCascade(updatedStudent.getId(), newStatus);
+        }
+        
         log.info("Đã cập nhật thông tin học viên ID: {}, Trạng thái: {}", id, updatedStudent.getStatus());
 
         return mapToDto(updatedStudent);
@@ -122,8 +140,42 @@ public class StudentServiceImpl implements StudentService {
     public void delete(Long id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ học viên với ID: " + id));
+        
+        User user = student.getUser();
+        // Ngắt liên kết để tránh lỗi JPA Cascade (Dù CSDL có ON DELETE CASCADE, nhưng báo trước cho Hibernate)
+        student.setUser(null);
         studentRepository.delete(student);
-        log.info("Đã xóa hoàn toàn hồ sơ học viên ID: {}", id);
+        
+        if (user != null) {
+            userRepository.delete(user);
+        }
+        
+        log.info("Đã xóa hoàn toàn hồ sơ học viên ID: {} và tài khoản User liên quan", id);
+    }
+
+    @Override
+    public Map<String, Object> deleteMultiple(List<Long> ids) {
+        int successCount = 0;
+        int skipCount = 0;
+
+        for (Long id : ids) {
+            try {
+                self.delete(id);
+                successCount++;
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                log.warn("Bỏ qua học viên ID {} vì vướng dữ liệu liên quan (Foreign Key)", id);
+                skipCount++;
+            } catch (Exception e) {
+                log.error("Lỗi khi xóa học viên ID {}: {}", id, e.getMessage());
+                skipCount++;
+            }
+        }
+
+        Map<String, Object> report = new HashMap<>();
+        report.put("success", successCount);
+        report.put("skipped", skipCount);
+        report.put("totalProcessed", ids.size());
+        return report;
     }
 
     @Override

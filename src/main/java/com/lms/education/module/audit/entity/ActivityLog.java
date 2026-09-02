@@ -37,7 +37,19 @@ public class ActivityLog {
     @Column(name = "target_id", length = 36)
     private String targetId;
 
-    @Column(columnDefinition = "JSON")
+    @Column(name = "method", length = 10)
+    private String method;
+
+    @Column(name = "endpoint", length = 255)
+    private String endpoint;
+
+    @Column(name = "old_value", columnDefinition = "JSON")
+    private String oldValue;
+
+    @Column(name = "new_value", columnDefinition = "JSON")
+    private String newValue;
+
+    @Column(name = "details", columnDefinition = "JSON")
     private String details;
 
     @Enumerated(EnumType.STRING)

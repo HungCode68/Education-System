@@ -12,6 +12,8 @@ public interface StudentService {
 
     void delete(Long id);
 
+    java.util.Map<String, Object> deleteMultiple(java.util.List<Long> ids);
+
     StudentDto getById(Long id);
 
     StudentDto getByStudentCode(String studentCode);

@@ -20,6 +20,10 @@ public class ActivityLogDto {
     private String action;
     private String targetType;
     private String targetId;
+    private String method;
+    private String endpoint;
+    private String oldValue;
+    private String newValue;
     private String details;
     private ActivityLog.LogStatus status;
     private String ipAddress;

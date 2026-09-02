@@ -14,6 +14,8 @@ public interface ActivityLogService {
             String action,
             String targetType,
             String targetId,
+            String oldValue,
+            String newValue,
             String details,
             ActivityLog.LogStatus status
     );

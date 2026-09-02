@@ -32,12 +32,14 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     @Override
     @Transactional
-    public void logAction(String module, String action, String targetType, String targetId, String details, ActivityLog.LogStatus status) {
+    public void logAction(String module, String action, String targetType, String targetId, String oldValue, String newValue, String details, ActivityLog.LogStatus status) {
         try {
             Long userId = null;
             String actorName = "System / Anonymous";
             String ipAddress = null;
             String userAgent = null;
+            String method = null;
+            String endpoint = null;
 
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
@@ -57,6 +59,8 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 if (request != null) {
                     ipAddress = getClientIp(request);
                     userAgent = request.getHeader("User-Agent");
+                    method = request.getMethod();
+                    endpoint = request.getRequestURI();
                 }
             }
 
@@ -67,6 +71,10 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                     .action(action)
                     .targetType(targetType)
                     .targetId(targetId)
+                    .method(method)
+                    .endpoint(endpoint)
+                    .oldValue(oldValue)
+                    .newValue(newValue)
                     .details(details)
                     .status(status != null ? status : ActivityLog.LogStatus.success)
                     .ipAddress(ipAddress)
@@ -111,6 +119,10 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 .action(entity.getAction())
                 .targetType(entity.getTargetType())
                 .targetId(entity.getTargetId())
+                .method(entity.getMethod())
+                .endpoint(entity.getEndpoint())
+                .oldValue(entity.getOldValue())
+                .newValue(entity.getNewValue())
                 .details(entity.getDetails())
                 .status(entity.getStatus())
                 .ipAddress(entity.getIpAddress())
