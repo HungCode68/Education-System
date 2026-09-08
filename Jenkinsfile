@@ -57,7 +57,7 @@ pipeline {
                     --name lms-backend \
                     --network lms-network \
                     -p 8090:8081 \
-                    -e DB_URL=jdbc:mysql://mysql-lms:3306/lms_db?createDatabaseIfNotExist=true&serverTimezone=UTC \
+                    -e DB_URL='jdbc:mysql://mysql-lms:3306/lms_db?createDatabaseIfNotExist=true&serverTimezone=UTC' \
                     -e DB_USERNAME='root' \
                     -e DB_PASSWORD='${SECRET_DB_PASS}' \
                     -e JWT_SECRET='${SECRET_JWT_KEY}' \
