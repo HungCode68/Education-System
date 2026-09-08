@@ -76,6 +76,7 @@ public class TeachingAssignmentController {
     @PreAuthorize("hasAuthority('ASSIGNMENT_VIEW')")
     public ResponseEntity<Page<TeachingAssignmentDto>> getAllAssignments(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long classId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -86,7 +87,7 @@ public class TeachingAssignmentController {
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        return ResponseEntity.ok(teachingAssignmentService.getAllAssignments(keyword, pageable));
+        return ResponseEntity.ok(teachingAssignmentService.getAllAssignments(keyword, classId, pageable));
     }
 
     @GetMapping("/class/{classId}")

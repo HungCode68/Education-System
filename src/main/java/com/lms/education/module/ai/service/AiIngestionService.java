@@ -36,19 +36,42 @@ public class AiIngestionService {
         document = documentRepository.save(document);
 
         // 2. Split content into chunks
-        String[] rawChunks = request.getContent().split("\\n\\n");
         List<String> chunks = new ArrayList<>();
-        
-        StringBuilder currentChunk = new StringBuilder();
         int maxLength = 1000;
+        String content = request.getContent();
         
-        for (String raw : rawChunks) {
-            if (currentChunk.length() + raw.length() > maxLength && !currentChunk.isEmpty()) {
-                chunks.add(currentChunk.toString().trim());
-                currentChunk = new StringBuilder();
+        // Split by double newline first
+        String[] rawParagraphs = content.split("\\n\\n");
+        StringBuilder currentChunk = new StringBuilder();
+        
+        for (String para : rawParagraphs) {
+            String trimmedPara = para.trim();
+            if (trimmedPara.isEmpty()) continue;
+            
+            // If the paragraph itself is larger than maxLength, we need to hard split it
+            if (trimmedPara.length() > maxLength) {
+                // First, save the current chunk if it has content
+                if (!currentChunk.isEmpty()) {
+                    chunks.add(currentChunk.toString().trim());
+                    currentChunk = new StringBuilder();
+                }
+                
+                // Hard split the large paragraph
+                int startIndex = 0;
+                while (startIndex < trimmedPara.length()) {
+                    int endIndex = Math.min(startIndex + maxLength, trimmedPara.length());
+                    chunks.add(trimmedPara.substring(startIndex, endIndex));
+                    startIndex = endIndex;
+                }
+            } else {
+                if (currentChunk.length() + trimmedPara.length() > maxLength) {
+                    chunks.add(currentChunk.toString().trim());
+                    currentChunk = new StringBuilder();
+                }
+                currentChunk.append(trimmedPara).append("\n\n");
             }
-            currentChunk.append(raw).append("\n\n");
         }
+        
         if (!currentChunk.isEmpty()) {
             chunks.add(currentChunk.toString().trim());
         }
@@ -73,5 +96,14 @@ public class AiIngestionService {
         // 4. Update status
         document.setProcessingStatus("COMPLETED");
         documentRepository.save(document);
+    }
+
+    @Transactional
+    public void deleteDocumentByMaterialId(Long materialId) {
+        AiDocument document = documentRepository.findByMaterialId(materialId).orElse(null);
+        if (document != null) {
+            chunkRepository.deleteByDocumentId(document.getId());
+            documentRepository.delete(document);
+        }
     }
 }

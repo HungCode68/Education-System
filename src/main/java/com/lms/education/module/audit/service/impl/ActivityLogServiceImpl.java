@@ -20,7 +20,7 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -90,7 +90,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ActivityLogDto> searchAndFilterLogs(String keyword, String module, String action, ActivityLog.LogStatus status, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    public Page<ActivityLogDto> searchAndFilterLogs(String keyword, String module, String action, ActivityLog.LogStatus status, Instant startDate, Instant endDate, Pageable pageable) {
         return activityLogRepository.searchAndFilterLogs(keyword, module, action, status, startDate, endDate, pageable)
                 .map(this::toDto);
     }

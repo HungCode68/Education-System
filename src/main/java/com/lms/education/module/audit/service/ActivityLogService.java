@@ -5,7 +5,7 @@ import com.lms.education.module.audit.entity.ActivityLog;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public interface ActivityLogService {
 
@@ -25,8 +25,8 @@ public interface ActivityLogService {
             String module,
             String action,
             ActivityLog.LogStatus status,
-            LocalDateTime startDate,
-            LocalDateTime endDate,
+            Instant startDate,
+            Instant endDate,
             Pageable pageable
     );
 

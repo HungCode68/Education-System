@@ -22,7 +22,8 @@ public interface TeachingAssignmentRepository extends JpaRepository<TeachingAssi
     List<TeachingAssignment> findByTeacherId(Long teacherId);
 
     @Query("SELECT ta FROM TeachingAssignment ta WHERE " +
-           "LOWER(ta.teacher.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(ta.classes.code) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    Page<TeachingAssignment> searchAssignments(@Param("keyword") String keyword, Pageable pageable);
+            "(:classId IS NULL OR ta.classes.id = :classId) AND " +
+            "(:keyword IS NULL OR :keyword = '' OR LOWER(ta.teacher.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(ta.classes.code) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<TeachingAssignment> searchAssignments(@Param("keyword") String keyword, @Param("classId") Long classId,
+            Pageable pageable);
 }

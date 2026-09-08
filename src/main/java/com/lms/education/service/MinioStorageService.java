@@ -124,6 +124,23 @@ public class MinioStorageService {
     }
 
     // Xóa file khỏi MinIO
+    public InputStream getFileStream(String objectName) {
+        if (objectName == null || objectName.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return minioClient.getObject(
+                    io.minio.GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Lỗi khi tải stream file từ MinIO: ", e);
+            return null;
+        }
+    }
+
     public void deleteFile(String objectName) {
         if (objectName == null || objectName.trim().isEmpty()) {
             return;

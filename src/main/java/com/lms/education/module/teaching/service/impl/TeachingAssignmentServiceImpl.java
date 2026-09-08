@@ -131,13 +131,9 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
 
     @Override
     @Transactional(readOnly = true)
-    public Page<TeachingAssignmentDto> getAllAssignments(String keyword, Pageable pageable) {
-        Page<TeachingAssignment> page;
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            page = teachingAssignmentRepository.searchAssignments(keyword.trim(), pageable);
-        } else {
-            page = teachingAssignmentRepository.findAll(pageable);
-        }
+    public Page<TeachingAssignmentDto> getAllAssignments(String keyword, Long classId, Pageable pageable) {
+        String kw = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+        Page<TeachingAssignment> page = teachingAssignmentRepository.searchAssignments(kw, classId, pageable);
         return page.map(this::mapToDto);
     }
 

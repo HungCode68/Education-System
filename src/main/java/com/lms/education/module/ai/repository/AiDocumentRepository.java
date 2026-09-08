@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AiDocumentRepository extends JpaRepository<AiDocument, Long> {
+    java.util.Optional<AiDocument> findByMaterialId(Long materialId);
 }

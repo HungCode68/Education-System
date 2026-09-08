@@ -16,7 +16,7 @@ public interface TeachingAssignmentService {
 
     TeachingAssignmentDto getById(Long id);
 
-    Page<TeachingAssignmentDto> getAllAssignments(String keyword, Pageable pageable);
+    Page<TeachingAssignmentDto> getAllAssignments(String keyword, Long classId, Pageable pageable);
 
     List<TeachingAssignmentDto> getAssignmentsByClassId(Long classId);
 }

@@ -189,9 +189,9 @@ public class TeachingAssignmentServiceImplTest {
     void getAllAssignments_Success() {
         Page<TeachingAssignment> page = new PageImpl<>(List.of(mockAssignment));
         Pageable pageable = PageRequest.of(0, 10);
-        when(teachingAssignmentRepository.searchAssignments("John", pageable)).thenReturn(page);
+        when(teachingAssignmentRepository.searchAssignments("John", null, pageable)).thenReturn(page);
 
-        Page<TeachingAssignmentDto> result = teachingAssignmentService.getAllAssignments("John", pageable);
+        Page<TeachingAssignmentDto> result = teachingAssignmentService.getAllAssignments("John", null, pageable);
 
         assertEquals(1, result.getTotalElements());
     }

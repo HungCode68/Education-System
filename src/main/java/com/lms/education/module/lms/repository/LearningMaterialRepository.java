@@ -19,6 +19,8 @@ public interface LearningMaterialRepository extends JpaRepository<LearningMateri
 
     List<LearningMaterial> findByLessonClassesIdOrderByDisplayOrderAsc(Long classId);
 
+    List<LearningMaterial> findByMaterialScopeAndIndexingStatus(String materialScope, String indexingStatus);
+
     boolean existsByLessonId(Long lessonId);
 
     @Query("SELECT lm FROM LearningMaterial lm WHERE " +

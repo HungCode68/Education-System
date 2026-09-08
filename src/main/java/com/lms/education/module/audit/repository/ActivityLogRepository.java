@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Repository
 public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> {
@@ -25,8 +25,8 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
             @Param("module") String module,
             @Param("action") String action,
             @Param("status") ActivityLog.LogStatus status,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate,
             Pageable pageable
     );
 

@@ -38,4 +38,7 @@ public interface AiDocumentChunkRepository extends JpaRepository<AiDocumentChunk
             @Param("chunkIndex") Integer chunkIndex,
             @Param("content") String content,
             @Param("vectorStr") String vectorStr);
+
+    @org.springframework.data.jpa.repository.Modifying
+    void deleteByDocumentId(Long documentId);
 }

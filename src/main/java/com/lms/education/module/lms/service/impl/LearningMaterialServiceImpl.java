@@ -17,9 +17,13 @@ import com.lms.education.module.user.entity.Staff;
 import com.lms.education.module.user.entity.User;
 import com.lms.education.module.user.repository.StaffRepository;
 import com.lms.education.module.user.repository.UserRepository;
+import com.lms.education.module.ai.dto.AiDocumentIngestRequest;
+import com.lms.education.module.ai.service.AiIngestionService;
+import com.lms.education.module.ai.service.DocumentParserService;
 import com.lms.education.service.MinioStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.util.concurrent.CompletableFuture;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -45,6 +49,8 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
     private final ScheduleAssignmentRepository scheduleAssignmentRepository;
     private final TeachingSubstitutionRepository teachingSubstitutionRepository;
     private final MinioStorageService minioStorageService;
+    private final AiIngestionService aiIngestionService;
+    private final DocumentParserService documentParserService;
 
     @Override
     @Transactional
@@ -105,6 +111,41 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         LearningMaterial saved = learningMaterialRepository.save(material);
         log.info("Đã tạo mới tài liệu tệp: {} (ID: {}) phạm vi: {}, isOfficial={}, isRagEnabled={}",
                 saved.getTitle(), saved.getId(), materialScope, isOfficial, isRagEnabled);
+
+        // AI Ingestion Trigger (Only for center-managed documents/slides)
+        if ("COURSE".equals(materialScope) && ("DOCUMENT".equals(formattedType) || "SLIDE".equals(formattedType))) {
+            // Need to extract text synchronously before passing it to async thread, 
+            // because MultipartFile stream might be closed once the HTTP request ends.
+            try {
+                String extractedText = documentParserService.extractText(file);
+                if (extractedText != null && !extractedText.isBlank()) {
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            AiDocumentIngestRequest ingestReq = new AiDocumentIngestRequest();
+                            ingestReq.setKbId(1L); 
+                            ingestReq.setMaterialId(saved.getId());
+                            ingestReq.setTitle(saved.getTitle());
+                            ingestReq.setContent(extractedText);
+                            
+                            aiIngestionService.ingestDocument(ingestReq);
+                            log.info("Successfully ingested document to AI: {}", saved.getTitle());
+                            
+                            saved.setIsRagEnabled(true);
+                            saved.setIndexingStatus("INDEXED");
+                            learningMaterialRepository.save(saved);
+                        } catch (Exception e) {
+                            log.error("Error during AI ingestion for document: {}", saved.getTitle(), e);
+                            saved.setIndexingStatus("FAILED");
+                            learningMaterialRepository.save(saved);
+                        }
+                    });
+                } else {
+                    log.warn("Extracted text is empty for document: {}", saved.getTitle());
+                }
+            } catch (Exception e) {
+                log.error("Failed to extract text from file before async ingestion: {}", e.getMessage());
+            }
+        }
 
         return mapToDto(saved);
     }
@@ -219,14 +260,19 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
             }
         }
 
+        boolean shouldIngest = false;
+        boolean shouldDelete = false;
+
         if (dto.getIsRagEnabled() != null) {
             boolean isAcademic = isAcademicDepartmentUser(currentUser, auth);
             if (isAcademic) {
                 existing.setIsRagEnabled(dto.getIsRagEnabled());
-                if (Boolean.TRUE.equals(dto.getIsRagEnabled()) && "NOT_INDEXED".equals(existing.getIndexingStatus())) {
+                if (Boolean.TRUE.equals(dto.getIsRagEnabled()) && ("NOT_INDEXED".equals(existing.getIndexingStatus()) || "FAILED".equals(existing.getIndexingStatus()))) {
                     existing.setIndexingStatus("PENDING");
+                    shouldIngest = true;
                 } else if (Boolean.FALSE.equals(dto.getIsRagEnabled())) {
                     existing.setIndexingStatus("NOT_INDEXED");
+                    shouldDelete = true;
                 }
             } else if (!existing.getIsRagEnabled().equals(dto.getIsRagEnabled())) {
                 throw new OperationNotPermittedException("Chỉ Bộ phận Đào tạo mới có quyền bật/tắt tính năng RAG AI cho tài liệu (isRagEnabled)!");
@@ -255,6 +301,72 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
 
         LearningMaterial updated = learningMaterialRepository.save(existing);
         log.info("Đã cập nhật tài liệu học tập ID: {}", id);
+
+        // Async Processing for RAG toggles
+        if (shouldDelete) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    aiIngestionService.deleteDocumentByMaterialId(updated.getId());
+                    log.info("Successfully deleted document from AI Knowledge Base: {}", updated.getTitle());
+                } catch (Exception e) {
+                    log.error("Failed to delete document from AI: {}", updated.getTitle(), e);
+                }
+            });
+        } else if (shouldIngest && "COURSE".equals(updated.getMaterialScope()) && ("DOCUMENT".equals(updated.getMaterialType()) || "SLIDE".equals(updated.getMaterialType()))) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    String extractedText = "";
+                    if (file != null && !file.isEmpty()) {
+                        // If user uploaded a new file in this request, use it directly
+                        extractedText = documentParserService.extractText(file);
+                    } else if ("MINIO".equalsIgnoreCase(updated.getSourceType()) && updated.getResourceUrl() != null) {
+                        // If no new file, download the existing one from MinIO
+                        try (java.io.InputStream stream = minioStorageService.getFileStream(updated.getResourceUrl())) {
+                            if (stream != null) {
+                                extractedText = documentParserService.extractText(stream, updated.getResourceUrl());
+                            }
+                        }
+                    }
+
+                    if (extractedText != null && !extractedText.isBlank()) {
+                        AiDocumentIngestRequest ingestReq = new AiDocumentIngestRequest();
+                        ingestReq.setKbId(1L); 
+                        ingestReq.setMaterialId(updated.getId());
+                        ingestReq.setTitle(updated.getTitle());
+                        ingestReq.setContent(extractedText);
+                        
+                        // Delete old chunks first just in case
+                        aiIngestionService.deleteDocumentByMaterialId(updated.getId());
+                        // Ingest new
+                        aiIngestionService.ingestDocument(ingestReq);
+                        
+                        log.info("Successfully ingested document to AI: {}", updated.getTitle());
+                        
+                        updated.setIndexingStatus("INDEXED");
+                        learningMaterialRepository.save(updated);
+                    } else {
+                        log.warn("Extracted text is empty or file not found for document: {}", updated.getTitle());
+                        updated.setIndexingStatus("FAILED");
+                        learningMaterialRepository.save(updated);
+                        
+                        try (java.io.FileWriter fw = new java.io.FileWriter("D:\\Education System\\error_log.txt", true)) {
+                            fw.write("Extracted text is empty or file not found for document: " + updated.getTitle() + "\n");
+                        } catch (Exception ioE) {}
+                    }
+                } catch (Exception e) {
+                    log.error("Error during AI ingestion for document: {}", updated.getTitle(), e);
+                    updated.setIndexingStatus("FAILED");
+                    learningMaterialRepository.save(updated);
+                    
+                    try (java.io.FileWriter fw = new java.io.FileWriter("D:\\Education System\\error_log.txt", true)) {
+                        fw.write("Exception during AI ingestion: " + e.getMessage() + "\n");
+                        for (StackTraceElement element : e.getStackTrace()) {
+                            fw.write(element.toString() + "\n");
+                        }
+                    } catch (Exception ioE) {}
+                }
+            });
+        }
 
         return mapToDto(updated);
     }
